@@ -8,7 +8,8 @@ public record CrearSistemaCommand(
     string Codigo,
     string Nombre,
     string? Descripcion,
-    int LocalizacionId) : IRequest<int>;
+    int LocalizacionId,
+    bool Activo) : IRequest<int>;
 
 public class CrearSistemaCommandHandler : IRequestHandler<CrearSistemaCommand, int>
 {
@@ -40,7 +41,8 @@ public class CrearSistemaCommandHandler : IRequestHandler<CrearSistemaCommand, i
             Codigo = request.Codigo.Trim(),
             Nombre = request.Nombre.Trim(),
             Descripcion = request.Descripcion,
-            LocalizacionId = request.LocalizacionId
+            LocalizacionId = request.LocalizacionId,
+            Activo = request.Activo
         };
 
         await _sistemaRepository.AgregarAsync(sistema, ct);

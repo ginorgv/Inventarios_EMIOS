@@ -15,8 +15,8 @@ Puedes configurar el **servidor** y los **nombres de las bases** de dos formas:
 | `DB_PORT` | Puerto (por defecto `3306`). |
 | `DB_USER` | Usuario de la base. |
 | `DB_PASSWORD` | Contraseña. |
-| `EMIOS301_DATABASE` | Nombre del esquema **emios301** (solo lectura). |
-| `EMIOS_INVENTARIO_DATABASE` | Nombre del esquema **emios_inventario** (escritura). |
+| `EMIOS_DB` | Nombre del esquema **emios301** (solo lectura). |
+| `EMIOS_INVENTARIO_DB` | Nombre del esquema **emios_inventario** (escritura). |
 | `PORT` | La define Railway automáticamente (el contenedor escucha en `$PORT`). |
 
 ### Opción B — cadena completa
@@ -70,8 +70,8 @@ Server=host;Port=3306;Database=emios301;User=usuario;Password=clave;TreatTinyAsB
    | `DB_PORT` | `${{MySQL.MYSQLPORT}}` | |
    | `DB_USER` | `${{MySQL.MYSQLUSER}}` | |
    | `DB_PASSWORD` | `${{MySQL.MYSQLPASSWORD}}` | |
-   | `EMIOS301_DATABASE` | `emios301` | Esquema heredado (crearlo/importar en la instancia). |
-   | `EMIOS_INVENTARIO_DATABASE` | `${{MySQL.MYSQLDATABASE}}` | BD por defecto; la app la crea/migra sola. |
+   | `EMIOS_DB` | `emios301` | Esquema heredado (crearlo/importar en la instancia). |
+   | `EMIOS_INVENTARIO_DB` | `${{MySQL.MYSQLDATABASE}}` | BD por defecto; la app la crea/migra sola. |
 
    O alternativamente, con cadenas completas (máxima prioridad):
 

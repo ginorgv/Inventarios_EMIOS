@@ -23,7 +23,7 @@ public class SistemaViewModel
         Activo = dto.Activo
     };
 
-    public CrearSistemaCommand ToCrearCommand() => new(Codigo, Nombre, Descripcion, LocalizacionId);
+    public CrearSistemaCommand ToCrearCommand() => new(Codigo, Nombre, Descripcion, LocalizacionId, Activo);
 
     public ActualizarSistemaCommand ToActualizarCommand() => new(Id, Codigo, Nombre, Descripcion, LocalizacionId, Activo);
 }

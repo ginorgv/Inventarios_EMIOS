@@ -437,7 +437,8 @@
     {
         _busqueda = string.Empty;
         _activoSeleccionado = null;
-        _instalacion = _instalaciones.FirstOrDefault(l => l.Id == instalacionId);
+        _instalacion = _instalaciones.FirstOrDefault(l => l.Id == instalacionId)
+            ?? (_instalacion?.Id == instalacionId ? _instalacion : null);
         _sistema = null;
         _activo = null;
         _cargando = true;
@@ -460,7 +461,8 @@
     {
         _busqueda = string.Empty;
         _activoSeleccionado = null;
-        _sistema = _sistemas.FirstOrDefault(s => s.Id == sistemaId);
+        _sistema = _sistemas.FirstOrDefault(s => s.Id == sistemaId)
+            ?? (_sistema?.Id == sistemaId ? _sistema : null);
         _activo = null;
         _cargando = true;
         _error = null;
@@ -482,7 +484,8 @@
     {
         _busqueda = string.Empty;
         _activoSeleccionado = null;
-        _activo = _activos.FirstOrDefault(a => a.Id == activoId);
+        _activo = _activos.FirstOrDefault(a => a.Id == activoId)
+            ?? (_activo?.Id == activoId ? _activo : null);
         _cargando = true;
         _error = null;
         try
@@ -509,7 +512,10 @@
         var dialogo = await DialogService.ShowAsync<SistemaDialog>("Nuevo sistema", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false })
+        {
             await IrSistemas(_instalacion!.Id);
+            await RefrescarArbolAsync();
+        }
     }
 
     private async Task NuevoActivo()
@@ -522,7 +528,10 @@
         var dialogo = await DialogService.ShowAsync<ActivoDialog>("Nuevo activo", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false })
+        {
             await IrActivos(_sistema!.Id);
+            await RefrescarArbolAsync();
+        }
     }
 
 
@@ -543,6 +552,7 @@
             await ActivoService.EliminarComponenteAsync(comp.Id);
             Snackbar.Add("Componente eliminado correctamente.", Severity.Success);
             await IrComponentes(_activo!.Id);
+            await RefrescarArbolAsync();
         }
         catch (Exception ex)
         {
@@ -574,7 +584,10 @@
         var dialogo = await DialogService.ShowAsync<SistemaDialog>($"Editar {sistema.Codigo}", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false })
+        {
             await IrSistemas(_instalacion!.Id);
+            await RefrescarArbolAsync();
+        }
     }
 
     private async Task EliminarSistema(Sistema sistema)
@@ -592,6 +605,7 @@
             await ActivoService.EliminarSistemaAsync(sistema.Id);
             Snackbar.Add("Sistema eliminado correctamente.", Severity.Success);
             await IrSistemas(_instalacion!.Id);
+            await RefrescarArbolAsync();
         }
         catch (Exception ex)
         {
@@ -622,7 +636,10 @@
         var dialogo = await DialogService.ShowAsync<ActivoDialog>($"Editar {activo.Codigo}", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false })
+        {
             await IrActivos(_sistema!.Id);
+            await RefrescarArbolAsync();
+        }
     }
 
     private async Task EliminarActivo(Activo activo)
@@ -640,6 +657,7 @@
             await ActivoService.EliminarActivoAsync(activo.Id);
             Snackbar.Add("Activo eliminado correctamente.", Severity.Success);
             await IrActivos(_sistema!.Id);
+            await RefrescarArbolAsync();
         }
         catch (Exception ex)
         {
@@ -672,6 +690,7 @@
                 var creados = await ActivoService.ImportarSensoresAActivoAsync(_activoSeleccionado.Id, ids);
                 Snackbar.Add($"Se añadieron {creados} sensores al activo {_activoSeleccionado.Codigo}.", Severity.Success);
                 await IrActivos(_sistema!.Id);
+                await RefrescarArbolAsync();
             }
         }
         catch (Exception ex)
@@ -703,6 +722,7 @@
             await ActivoService.MoverComponenteAsync(mv.ComponenteId, mv.NuevoActivoId);
             Snackbar.Add("Sensor movido a otro activo.", Severity.Success);
             await IrActivos(_sistema!.Id);
+            await RefrescarArbolAsync();
         }
     }
 
@@ -830,6 +850,103 @@
             Icon = IconoNodo(n.Tipo),
             Expandable = expandible
         };
+    }
+
+    /// <summary>
+    /// Reconstruye el árbol con la ruta actual (cliente → instalación → sistema →
+    /// activo) expandida y sus hijos recargados, para que los cambios (añadir/
+    /// editar/eliminar sistema o activo, importar/mover sensores, eliminar
+    /// componente, etc.) se reflejen sin recargar la página.
+    /// </summary>
+    private async Task RefrescarArbolAsync()
+    {
+        try
+        {
+            _raices = _clientes
+                .Select(c => Envolver(new NodoArbol { Tipo = "cliente", Id = c.Id, Nombre = c.Nombre }, expandible: true))
+                .ToList();
+
+            if (_cliente is null)
+                return;
+
+            var raiz = _raices.FirstOrDefault(r => r.Value?.Id == _cliente.Id);
+            if (raiz is null)
+                return;
+
+            raiz.Expanded = true;
+            raiz.Children = (await Jerarquia.ListarInstalacionesAsync(_cliente.Id, _redes))
+                .Select(l => Envolver(new NodoArbol
+                {
+                    Tipo = "instalacion", Id = l.Id, Nombre = l.Nombre,
+                    ClienteId = _cliente.Id
+                }, expandible: true))
+                .ToList();
+
+            if (_instalacion is null)
+                return;
+
+            var nodoInstalacion = raiz.Children.FirstOrDefault(n => n.Value?.Id == _instalacion.Id);
+            if (nodoInstalacion is null)
+                return;
+
+            nodoInstalacion.Expanded = true;
+            nodoInstalacion.Children = (await Jerarquia.ListarSistemasAsync(_instalacion.Id))
+                .Select(s => Envolver(new NodoArbol
+                {
+                    Tipo = "sistema", Id = s.Id, Nombre = s.Nombre, Codigo = s.Codigo,
+                    ClienteId = _cliente.Id,
+                    InstalacionId = _instalacion.Id, InstalacionNombre = _instalacion.Nombre,
+                    LocalizacionId = s.LocalizacionId
+                }, expandible: true))
+                .ToList();
+
+            if (_sistema is null)
+                return;
+
+            var nodoSistema = nodoInstalacion.Children.FirstOrDefault(n => n.Value?.Id == _sistema.Id);
+            if (nodoSistema is null)
+                return;
+
+            nodoSistema.Expanded = true;
+            nodoSistema.Children = (await Jerarquia.ListarActivosAsync(_sistema.Id))
+                .Select(a => Envolver(new NodoArbol
+                {
+                    Tipo = "activo", Id = a.Id, Nombre = a.Nombre, Codigo = a.Codigo,
+                    ClienteId = _cliente.Id,
+                    InstalacionId = _instalacion.Id, InstalacionNombre = _instalacion.Nombre,
+                    SistemaId = _sistema.Id, SistemaNombre = _sistema.Nombre, SistemaCodigo = _sistema.Codigo,
+                    LocalizacionId = _sistema.LocalizacionId
+                }, expandible: true))
+                .ToList();
+
+            if (_activo is null)
+                return;
+
+            var nodoActivo = nodoSistema.Children.FirstOrDefault(n => n.Value?.Id == _activo.Id);
+            if (nodoActivo is null)
+                return;
+
+            nodoActivo.Expanded = true;
+            nodoActivo.Children = (await Jerarquia.ListarComponentesAsync(_activo.Id))
+                .Select(c => Envolver(new NodoArbol
+                {
+                    Tipo = "componente", Id = c.Id, Nombre = c.Nombre, Codigo = c.Codigo,
+                    ClienteId = _cliente.Id,
+                    InstalacionId = _instalacion.Id, InstalacionNombre = _instalacion.Nombre,
+                    SistemaId = _sistema.Id, SistemaNombre = _sistema.Nombre, SistemaCodigo = _sistema.Codigo,
+                    LocalizacionId = _sistema.LocalizacionId,
+                    ActivoId = _activo.Id, ActivoNombre = _activo.Nombre, ActivoCodigo = _activo.Codigo
+                }, expandible: false))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo actualizar el árbol: {ex.Message}";
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task SeleccionarNodo(NodoArbol? nodo)

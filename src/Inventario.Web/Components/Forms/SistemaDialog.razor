@@ -20,7 +20,8 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudSelect T="int" Label="Localización *" @bind-Value="Modelo.LocalizacionId"
-                               Required="true" RequiredError="Selecciona una localización.">
+                               Required="true" RequiredError="Selecciona una localización."
+                               Disabled="true" HelperText="La localización se fija desde la estructura.">
                         @foreach (var l in _localizaciones)
                         {
                             <MudSelectItem T="int" Value="@l.Id">@l.Nombre</MudSelectItem>

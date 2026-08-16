@@ -9,16 +9,16 @@ namespace Inventario.Infrastructure;
 ///      (EMIOS301_CONNECTION_STRING / EMIOS_INVENTARIO_CONNECTION_STRING).
 ///   2) Configuración GRANULAR del servidor: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD
 ///      (o sección "Db" de appsettings) + nombre de la BD:
-///      EMIOS301_DATABASE / EMIOS_INVENTARIO_DATABASE
+///      EMIOS_DB / EMIOS_INVENTARIO_DB
 ///      (o "Db:Emios301Database" / "Db:EmiosInventarioDatabase" de appsettings).
 /// </summary>
 public static class CadenasConexion
 {
     public static string Emios301(IConfiguration? config = null)
-        => Obtener("EMIOS301_CONNECTION_STRING", "EMIOS301_DATABASE", "Db:Emios301Database", "emios301", config);
+        => Obtener("EMIOS301_CONNECTION_STRING", "EMIOS_DB", "Db:Emios301Database", "emios301", config);
 
     public static string EmiosInventario(IConfiguration? config = null)
-        => Obtener("EMIOS_INVENTARIO_CONNECTION_STRING", "EMIOS_INVENTARIO_DATABASE", "Db:EmiosInventarioDatabase", "emios_inventario", config);
+        => Obtener("EMIOS_INVENTARIO_CONNECTION_STRING", "EMIOS_INVENTARIO_DB", "Db:EmiosInventarioDatabase", "emios_inventario", config);
 
     private static string Obtener(
         string envCompleta,
