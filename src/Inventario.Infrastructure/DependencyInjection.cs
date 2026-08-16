@@ -20,10 +20,10 @@ public static class DependencyInjection
         var csEmios = CadenasConexion.Emios301(configuration);
         var csInventario = CadenasConexion.EmiosInventario(configuration);
 
-        // Versión de MariaDB usada para generar SQL. Se usa explícita (y no
-        // ServerVersion.AutoDetect) para no abrir una conexión al construir
-        // las opciones del contexto. Ajustar a la versión real si es necesario.
-        var versionServidor = ServerVersion.Create(new Version(10, 11, 0), ServerType.MariaDb);
+        // Versión del servidor usada para generar SQL. Se detecta automáticamente
+        // (MySQL o MariaDB) con fallback seguro; evita generar INSERT ... RETURNING
+        // (sintaxis MariaDB ≥10.5) cuando la base real es MySQL.
+        var versionServidor = ServidorVersion.Resolver(csInventario);
 
         // Contexto de SOLO LECTURA sobre emios301 (no se migra ni se modifica).
         // Se registra como fábrica (IDbContextFactory) para que los componentes

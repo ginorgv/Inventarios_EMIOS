@@ -18,7 +18,7 @@ public class InventarioDbContextFactory : IDesignTimeDbContextFactory<Inventario
         // Misma resolución que la aplicación (env vars o valores por defecto).
         var connectionString = CadenasConexion.EmiosInventario();
 
-        var version = ServerVersion.Create(new Version(10, 11, 0), ServerType.MariaDb);
+        var version = ServidorVersion.Resolver(connectionString);
 
         var options = new DbContextOptionsBuilder<InventarioDbContext>()
             .UseMySql(connectionString, version)
