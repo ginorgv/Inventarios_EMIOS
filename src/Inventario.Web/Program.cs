@@ -41,12 +41,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
-// En despliegues (Railway/Producción) con conexión por variable de entorno, se
-// aplican las migraciones de emios_inventario al arrancar (idempotente). En
-// desarrollo local se omiten porque la BD ya está migrada.
-if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("EMIOS_INVENTARIO_CONNECTION_STRING")))
+// Asegura que emios_inventario exista y esté migrada (idempotente). Si la base no
+// existe, EF la crea y aplica las migraciones pendientes la primera vez. emios301
+// (solo lectura) no se migra nunca.
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     try
     {
         var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<InventarioDbContext>>();
@@ -56,7 +55,7 @@ if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("EMIOS_INVENTARIO_C
     }
     catch (Exception ex)
     {
-        app.Logger.LogWarning(ex, "No se pudieron aplicar las migraciones de emios_inventario al arrancar.");
+        app.Logger.LogWarning(ex, "No se pudieron aplicar las migraciones de emios_inventario al arrancar (¿BD no disponible?).");
     }
 }
 
@@ -93,6 +92,14 @@ app.MapPost("/api/login", async (
         return Results.Ok();
     })
     .AllowAnonymous();
+
+// Cierre de sesión en contexto HTTP normal (no dentro del circuito interactivo,
+// donde SignOutAsync fallaría por "Headers are read-only, response has already started").
+app.MapGet("/logout", async (HttpContext http, IAuthService auth) =>
+{
+    await auth.CerrarSesionAsync(http);
+    return Results.Redirect("/sesion-cerrada");
+});
 
 app.Run();
 

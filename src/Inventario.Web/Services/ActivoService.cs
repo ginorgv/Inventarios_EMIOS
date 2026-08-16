@@ -29,7 +29,6 @@ public interface IActivoService
     Task EliminarSistemaAsync(int id, CancellationToken ct = default);
 
     Task<IReadOnlyList<ComponenteDto>> ListarComponentesAsync(int activoId, CancellationToken ct = default);
-    Task<int> CrearComponenteAsync(ComponenteViewModel modelo, CancellationToken ct = default);
     Task EliminarComponenteAsync(int id, CancellationToken ct = default);
 
     Task<IReadOnlyList<LocalizacionDto>> ListarLocalizacionesAsync(int? redId = null, CancellationToken ct = default);
@@ -98,9 +97,6 @@ public class ActivoService : IActivoService
 
     public Task<IReadOnlyList<ComponenteDto>> ListarComponentesAsync(int activoId, CancellationToken ct = default)
         => _sender.Send(new ListarComponentesQuery(activoId), ct);
-
-    public Task<int> CrearComponenteAsync(ComponenteViewModel modelo, CancellationToken ct = default)
-        => _sender.Send(modelo.ToCrearCommand(), ct);
 
     public Task EliminarComponenteAsync(int id, CancellationToken ct = default)
         => _sender.Send(new EliminarComponenteCommand(id), ct);

@@ -48,7 +48,7 @@
             </MudCardContent>
         </MudCard>
     </MudItem>
-    <MudItem xs="12" md="8" lg="9">
+    <MudItem xs="12" md="9" lg="10">
         <MudCard Elevation="1" Class="rounded">
     <MudCardHeader>
         <CardHeaderContent>
@@ -112,13 +112,7 @@
         else if (_activo != null)
         {
             @* Nivel 5: Componentes / Sensores *@
-            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
-                <MudText Typo="Typo.subtitle1">Componentes / Sensores (Nivel 5)</MudText>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="NuevoComponente">
-                    Añadir componente
-                </MudButton>
-            </MudStack>
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Componentes / Sensores (Nivel 5)</MudText>
             <MudTable T="Componente" Items="_componentesVisibles" Hover="true" Breakpoint="Breakpoint.Sm"
                       RowsPerPage="10" Loading="_cargando">
                 <HeaderContent>
@@ -133,14 +127,7 @@
                     <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
                     <MudTd DataLabel="Tipo">@(string.IsNullOrEmpty(context.Tipo) ? "—" : context.Tipo)</MudTd>
                     <MudTd DataLabel="Sensor">
-                        @if (context.SensorId.HasValue)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">Sensor #@context.SensorId</MudChip>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.caption" Class="text-secondary">—</MudText>
-                        }
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">Sensor #@context.SensorId</MudChip>
                     </MudTd>
                     <MudTd DataLabel="Acciones">
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
@@ -196,11 +183,6 @@
                     <MudTd DataLabel="Estado"><ChipEstado Estado="context.Estado" /></MudTd>
                     <MudTd DataLabel="Componentes">@context.Componentes.Count</MudTd>
                     <MudTd DataLabel="Acciones">
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
-                                   StartIcon="@Icons.Material.Filled.ArrowForward"
-                                   OnClick="() => IrComponentes(context.Id)">
-                            Ver componentes
-                        </MudButton>
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar"
                                        OnClick="() => EditarActivo(context)" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
@@ -235,11 +217,6 @@
                     <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
                     <MudTd DataLabel="Activos">@context.Activos.Count</MudTd>
                     <MudTd DataLabel="Acciones">
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
-                                   StartIcon="@Icons.Material.Filled.ArrowForward"
-                                   OnClick="() => IrActivos(context.Id)">
-                            Ver activos
-                        </MudButton>
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar"
                                        OnClick="() => EditarSistema(context)" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
@@ -262,20 +239,12 @@
                     <MudTh>Descripción</MudTh>
                     <MudTh>Latitud</MudTh>
                     <MudTh>Longitud</MudTh>
-                    <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Nombre"><b>@context.Nombre</b></MudTd>
                     <MudTd DataLabel="Descripción">@(string.IsNullOrEmpty(context.Descripcion) ? "—" : context.Descripcion)</MudTd>
                     <MudTd DataLabel="Latitud">@(context.Latitud?.ToString("F5") ?? "—")</MudTd>
                     <MudTd DataLabel="Longitud">@(context.Longitud?.ToString("F5") ?? "—")</MudTd>
-                    <MudTd DataLabel="">
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
-                                   StartIcon="@Icons.Material.Filled.ArrowForward"
-                                   OnClick="() => IrSistemas(context.Id)">
-                            Ver sistemas
-                        </MudButton>
-                    </MudTd>
                 </RowTemplate>
                 <PagerContent>
                     <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
@@ -308,11 +277,6 @@
                                    StartIcon="@Icons.Material.Filled.Assignment"
                                    OnClick="() => EditarClienteDatos(context)">
                             Datos
-                        </MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
-                                   StartIcon="@Icons.Material.Filled.ArrowForward"
-                                   OnClick="() => IrInstalaciones(context.Id)">
-                            Ver instalaciones
                         </MudButton>
                     </MudTd>
                 </RowTemplate>
@@ -561,18 +525,6 @@
             await IrActivos(_sistema!.Id);
     }
 
-    private async Task NuevoComponente()
-    {
-        var parametros = new DialogParameters<ComponenteDialog>
-        {
-            { x => x.Modelo, new ComponenteViewModel { ActivoId = _activo!.Id } }
-        };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialogo = await DialogService.ShowAsync<ComponenteDialog>("Nuevo componente", parametros, opciones);
-        var resultado = await dialogo.Result;
-        if (resultado is { Canceled: false })
-            await IrComponentes(_activo!.Id);
-    }
 
     private async Task EliminarComponente(Componente comp)
     {

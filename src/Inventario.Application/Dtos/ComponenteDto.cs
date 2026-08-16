@@ -10,4 +10,4 @@ public record ComponenteDto(
     decimal? RangoMaximo,
     string? RangoUnidad,
     int ActivoId,
-    int? SensorId);
+    int SensorId);

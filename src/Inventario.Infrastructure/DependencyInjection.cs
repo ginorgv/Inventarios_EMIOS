@@ -15,18 +15,10 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Cadenas de conexión: se pueden sobrescribir con variables de entorno
-        // (Railway y otros hosts) y tienen como respaldo los valores de appsettings.json
-        // (desarrollo local).
-        var csEmios = Environment.GetEnvironmentVariable("EMIOS301_CONNECTION_STRING")
-            ?? configuration.GetConnectionString("Emios301")
-            ?? throw new InvalidOperationException(
-                "Falta la cadena de conexión 'Emios301' (variable de entorno EMIOS301_CONNECTION_STRING o appsettings.json).");
-
-        var csInventario = Environment.GetEnvironmentVariable("EMIOS_INVENTARIO_CONNECTION_STRING")
-            ?? configuration.GetConnectionString("EmiosInventario")
-            ?? throw new InvalidOperationException(
-                "Falta la cadena de conexión 'EmiosInventario' (variable de entorno EMIOS_INVENTARIO_CONNECTION_STRING o appsettings.json).");
+        // Cadenas de conexión configurables (variables de entorno o sección "Db"
+        // de appsettings): servidor y nombres de base de datos.
+        var csEmios = CadenasConexion.Emios301(configuration);
+        var csInventario = CadenasConexion.EmiosInventario(configuration);
 
         // Versión de MariaDB usada para generar SQL. Se usa explícita (y no
         // ServerVersion.AutoDetect) para no abrir una conexión al construir

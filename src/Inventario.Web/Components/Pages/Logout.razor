@@ -1,11 +1,8 @@
-@page "/logout"
+@page "/sesion-cerrada"
 @attribute [AllowAnonymous]
 @layout BlankLayout
 @rendermode InteractiveServer
 @using Inventario.Web.Theme
-@inject Inventario.Web.Services.IAuthService AuthService
-@inject IHttpContextAccessor HttpAccessor
-@inject NavigationManager Nav
 
 <PageTitle>Inventario · Sesión cerrada</PageTitle>
 
@@ -26,12 +23,3 @@
         </MudStack>
     </MudPaper>
 </div>
-
-@code {
-    protected override async Task OnInitializedAsync()
-    {
-        var http = HttpAccessor.HttpContext;
-        if (http is not null)
-            await AuthService.CerrarSesionAsync(http);
-    }
-}

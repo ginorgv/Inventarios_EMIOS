@@ -27,8 +27,8 @@ public class Componente : AuditableEntity
     /// <summary>
     /// Id del sensor en <c>emios301.sensores</c> (solo lectura, creado en la otra
     /// aplicación webemios). Los sensores se representan como Componentes del nivel 5;
-    /// este enlace permite identificarlos y re-sincronizarlos. Null cuando el componente
-    /// no es un sensor (p. ej. creado a mano).
+    /// todo Componente está obligatoriamente enlazado a un sensor de emios301
+    /// (obligatorio y único: un sensor solo puede estar en un Componente).
     /// </summary>
-    public int? SensorId { get; set; }
+    public int SensorId { get; set; }
 }

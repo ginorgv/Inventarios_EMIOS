@@ -19,7 +19,9 @@ public class ComponenteConfiguration : IEntityTypeConfiguration<Componente>
 
         builder.HasIndex(c => c.ActivoId);
 
-        // Un sensor de emios301 solo puede estar representado por un único Componente.
+        // Un componente ES un sensor de emios301: obligatorio (no se crean componentes
+        // a mano) y único (un sensor solo puede estar en un Componente).
+        builder.Property(c => c.SensorId).IsRequired();
         builder.HasIndex(c => c.SensorId).IsUnique();
 
         // Value object: rango de medición → tres columnas propias.

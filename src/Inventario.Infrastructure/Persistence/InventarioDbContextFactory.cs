@@ -15,9 +15,8 @@ public class InventarioDbContextFactory : IDesignTimeDbContextFactory<Inventario
 {
     public InventarioDbContext CreateDbContext(string[] args)
     {
-        // Misma cadena de conexión y versión de servidor que appsettings.json.
-        var connectionString = Environment.GetEnvironmentVariable("EMIOS_INVENTARIO_CS")
-            ?? "Server=localhost;Port=3306;Database=emios_inventario;User=root;Password=;TreatTinyAsBoolean=true;";
+        // Misma resolución que la aplicación (env vars o valores por defecto).
+        var connectionString = CadenasConexion.EmiosInventario();
 
         var version = ServerVersion.Create(new Version(10, 11, 0), ServerType.MariaDb);
 

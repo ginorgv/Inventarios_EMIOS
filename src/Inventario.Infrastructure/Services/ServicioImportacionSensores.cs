@@ -104,8 +104,7 @@ public class ServicioImportacionSensores
         var activoPorId = activos.ToDictionary(a => a.Id);
         var componentes = await _componenteRepository.ObtenerTodosAsync(ct);
         var compPorSensor = componentes
-            .Where(c => c.SensorId.HasValue)
-            .ToDictionary(c => c.SensorId!.Value);
+            .ToDictionary(c => c.SensorId);
 
         var creadosA = 0; var actualizadosA = 0;
         var creadosC = 0; var actualizadosC = 0;
@@ -179,8 +178,7 @@ public class ServicioImportacionSensores
     {
         var componentes = await _componenteRepository.ObtenerTodosAsync(ct);
         var usados = componentes
-            .Where(c => c.SensorId.HasValue)
-            .Select(c => c.SensorId!.Value)
+            .Select(c => c.SensorId)
             .ToHashSet();
 
         var sensores = await _emios.Sensores
@@ -205,8 +203,7 @@ public class ServicioImportacionSensores
 
         var componentes = await _componenteRepository.ObtenerTodosAsync(ct);
         var usados = componentes
-            .Where(c => c.SensorId.HasValue)
-            .Select(c => c.SensorId!.Value)
+            .Select(c => c.SensorId)
             .ToHashSet();
 
         var sensores = await _emios.Sensores
