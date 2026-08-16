@@ -1,6 +1,8 @@
 @using Inventario.Domain.ValueObjects
+@using Inventario.Web.Services
 @inject Inventario.Web.Services.IActivoService ActivoService
 @inject ISnackbar Snackbar
+@inject ILogger<ActivoDialog> Logger
 
 <MudDialog>
     <TitleContent>
@@ -125,7 +127,8 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Error al guardar activo (código: {Codigo}, nombre: {Nombre})", Modelo.Codigo, Modelo.Nombre);
+            Snackbar.Add($"Error al guardar: {ErrorUtil.MensajeRaiz(ex)}", Severity.Error);
         }
         finally
         {
