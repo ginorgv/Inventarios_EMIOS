@@ -1,0 +1,993 @@
+@page "/estructura"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Inventario.Domain.Entities
+@using Inventario.Web.ViewModels
+@inject Inventario.Infrastructure.Services.ServicioJerarquia Jerarquia
+@inject Inventario.Infrastructure.Services.ServicioClienteDatos ClienteDatos
+@inject Inventario.Web.Services.IActivoService ActivoService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Estructura · Inventario</PageTitle>
+
+<MudGrid Spacing="3" Class="mt-1">
+    <MudItem xs="12" md="3" lg="2">
+        <MudCard Elevation="1" Class="rounded" Style="position: sticky; top: 12px;">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.subtitle1">🌳 Explorar jerarquía</MudText>
+                    <MudText Typo="Typo.caption" Class="text-secondary">Selecciona un nodo para navegar</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudTreeView T="NodoArbol"
+                             Items="_raices"
+                             ServerData="CargarHijosAsync"
+                             SelectedValue="_nodoSeleccionado"
+                             SelectedValueChanged="SeleccionarNodo"
+                             Comparer="_nodoComparer"
+                             Dense="true" Hover="true" ExpandOnClick="false">
+                    <ItemTemplate>
+                        <MudTreeViewItem T="NodoArbol"
+                                         Value="@context.Value"
+                                         Text="@context.Text"
+                                         Icon="@context.Icon"
+                                         CanExpand="@context.Expandable"
+                                         @bind-Items="context.Children"
+                                         @bind-Expanded="context.Expanded" />
+                    </ItemTemplate>
+                </MudTreeView>
+                @if (_raices.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="text-secondary mt-2">No hay clientes para mostrar.</MudText>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" md="8" lg="9">
+        <MudCard Elevation="1" Class="rounded">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">🗂 Estructura de inventario</MudText>
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1">
+                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" OnClick="IrClientes">
+                    Cliente / Proyecto
+                </MudButton>
+                @if (_cliente != null)
+                {
+                    <MudText Typo="Typo.body2" Class="text-secondary">›</MudText>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Inherit"
+                               OnClick="() => IrInstalaciones(_cliente.Id)">
+                        @_cliente.Nombre
+                    </MudButton>
+                }
+                @if (_instalacion != null)
+                {
+                    <MudText Typo="Typo.body2" Class="text-secondary">›</MudText>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Inherit"
+                               OnClick="() => IrSistemas(_instalacion.Id)">
+                        @_instalacion.Nombre
+                    </MudButton>
+                }
+                @if (_sistema != null)
+                {
+                    <MudText Typo="Typo.body2" Class="text-secondary">›</MudText>
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Inherit"
+                               OnClick="() => IrActivos(_sistema.Id)">
+                        @_sistema.Nombre
+                    </MudButton>
+                }
+                @if (_activo != null)
+                {
+                    <MudText Typo="Typo.body2" Class="text-secondary">›</MudText>
+                    <MudText Typo="Typo.body2" Class="font-weight-bold">@_activo.Nombre</MudText>
+                }
+            </MudStack>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">⚠ @_error</MudAlert>
+        }
+
+        <MudTextField T="string"
+                      Placeholder="🔍 Buscar en el nivel actual..."
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Immediate="true"
+                      @bind-Value="_busqueda"
+                      Class="mb-4" />
+
+        @if (_redes.Count == 0)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled">
+                El usuario no tiene redes asignadas (multi-tenant). Contacta con el administrador.
+            </MudAlert>
+        }
+        else if (_activo != null)
+        {
+            @* Nivel 5: Componentes / Sensores *@
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.subtitle1">Componentes / Sensores (Nivel 5)</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="NuevoComponente">
+                    Añadir componente
+                </MudButton>
+            </MudStack>
+            <MudTable T="Componente" Items="_componentesVisibles" Hover="true" Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10" Loading="_cargando">
+                <HeaderContent>
+                    <MudTh>Código</MudTh>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Tipo</MudTh>
+                    <MudTh>Sensor</MudTh>
+                    <MudTh>Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Código"><b>@context.Codigo</b></MudTd>
+                    <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+                    <MudTd DataLabel="Tipo">@(string.IsNullOrEmpty(context.Tipo) ? "—" : context.Tipo)</MudTd>
+                    <MudTd DataLabel="Sensor">
+                        @if (context.SensorId.HasValue)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">Sensor #@context.SensorId</MudChip>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Class="text-secondary">—</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Acciones">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       aria-label="Eliminar" OnClick="() => EliminarComponente(context)" />
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        }
+        else if (_sistema != null)
+        {
+            @* Nivel 4: Activos / Equipos *@
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.subtitle1">Equipos / Activos (Nivel 4)</MudText>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                               StartIcon="@Icons.Material.Filled.Download"
+                               Disabled="_activoSeleccionado is null || _importando" OnClick="@ImportarSensoresActivo">
+                        @(_importando ? "Importando..." : "Importar sensores")
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                               StartIcon="@Icons.Material.Filled.SwapHoriz"
+                               Disabled="_activoSeleccionado is null" OnClick="@MoverSensorActivo">
+                        Mover sensor
+                    </MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="NuevoActivo">
+                        Añadir activo
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+            <MudTable T="Activo" Items="_activosVisibles" Hover="true" Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10" Loading="_cargando" RowClassFunc="ClaseFilaActivo">
+                <HeaderContent>
+                    <MudTh></MudTh>
+                    <MudTh>Código</MudTh>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Tipo</MudTh>
+                    <MudTh>Estado</MudTh>
+                    <MudTh>Componentes</MudTh>
+                    <MudTh>Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="">
+                        <MudCheckBox T="bool" Value="_activoSeleccionado?.Id == context.Id"
+                                     ValueChanged="(_) => AlternarSeleccionActivo(context)" />
+                    </MudTd>
+                    <MudTd DataLabel="Código"><b>@context.Codigo</b></MudTd>
+                    <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+                    <MudTd DataLabel="Tipo">@(string.IsNullOrEmpty(context.TipoActivo) ? "—" : context.TipoActivo)</MudTd>
+                    <MudTd DataLabel="Estado"><ChipEstado Estado="context.Estado" /></MudTd>
+                    <MudTd DataLabel="Componentes">@context.Componentes.Count</MudTd>
+                    <MudTd DataLabel="Acciones">
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="() => IrComponentes(context.Id)">
+                            Ver componentes
+                        </MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar"
+                                       OnClick="() => EditarActivo(context)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       aria-label="Eliminar" OnClick="() => EliminarActivo(context)" />
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        }
+        else if (_instalacion != null)
+        {
+            @* Nivel 3: Sistemas *@
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                <MudText Typo="Typo.subtitle1">Sistemas / Subsistemas (Nivel 3)</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="NuevoSistema">
+                    Añadir sistema
+                </MudButton>
+            </MudStack>
+            <MudTable T="Sistema" Items="_sistemasVisibles" Hover="true" Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10" Loading="_cargando">
+                <HeaderContent>
+                    <MudTh>Código</MudTh>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Activos</MudTh>
+                    <MudTh>Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Código"><b>@context.Codigo</b></MudTd>
+                    <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+                    <MudTd DataLabel="Activos">@context.Activos.Count</MudTd>
+                    <MudTd DataLabel="Acciones">
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="() => IrActivos(context.Id)">
+                            Ver activos
+                        </MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar"
+                                       OnClick="() => EditarSistema(context)" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       aria-label="Eliminar" OnClick="() => EliminarSistema(context)" />
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        }
+        else if (_cliente != null)
+        {
+            @* Nivel 2: Instalaciones / Sites *@
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Instalaciones / Sites (Nivel 2)</MudText>
+            <MudTable T="Localizacion" Items="_instalacionesVisibles" Hover="true" Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10" Loading="_cargando">
+                <HeaderContent>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Descripción</MudTh>
+                    <MudTh>Latitud</MudTh>
+                    <MudTh>Longitud</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Nombre"><b>@context.Nombre</b></MudTd>
+                    <MudTd DataLabel="Descripción">@(string.IsNullOrEmpty(context.Descripcion) ? "—" : context.Descripcion)</MudTd>
+                    <MudTd DataLabel="Latitud">@(context.Latitud?.ToString("F5") ?? "—")</MudTd>
+                    <MudTd DataLabel="Longitud">@(context.Longitud?.ToString("F5") ?? "—")</MudTd>
+                    <MudTd DataLabel="">
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="() => IrSistemas(context.Id)">
+                            Ver sistemas
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        }
+        else
+        {
+            @* Nivel 1: Clientes / Proyectos *@
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Clientes / Proyectos (Nivel 1)</MudText>
+            <MudTable T="Cliente" Items="_clientesVisibles" Hover="true" Breakpoint="Breakpoint.Sm"
+                      RowsPerPage="10" Loading="_cargando">
+                <HeaderContent>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Contrato</MudTh>
+                    <MudTh>Tipo</MudTh>
+                    <MudTh>Inicio</MudTh>
+                    <MudTh>Fin</MudTh>
+                    <MudTh>Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    @{ var datos = _datosPorCliente.GetValueOrDefault(context.Id); }
+                    <MudTd DataLabel="Nombre"><b>@context.Nombre</b></MudTd>
+                    <MudTd DataLabel="Contrato">@(string.IsNullOrWhiteSpace(datos?.ContractRef) ? "—" : datos.ContractRef)</MudTd>
+                    <MudTd DataLabel="Tipo">@(datos?.ProjectType ?? "—")</MudTd>
+                    <MudTd DataLabel="Inicio">@(datos?.StartDate?.ToString("dd/MM/yyyy") ?? "—")</MudTd>
+                    <MudTd DataLabel="Fin">@(datos?.EndDate?.ToString("dd/MM/yyyy") ?? "—")</MudTd>
+                    <MudTd DataLabel="Acciones">
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Assignment"
+                                   OnClick="() => EditarClienteDatos(context)">
+                            Datos
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="() => IrInstalaciones(context.Id)">
+                            Ver instalaciones
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        }
+        </MudCardContent>
+    </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private IReadOnlyList<int> _redes = Array.Empty<int>();
+    private string? _error;
+    private bool _cargando;
+    private bool _importando;
+    private Activo? _activoSeleccionado;
+    private string _busqueda = string.Empty;
+
+    private Cliente? _cliente;
+    private Localizacion? _instalacion;
+    private Sistema? _sistema;
+    private Activo? _activo;
+
+    private IReadOnlyList<Cliente> _clientes = Array.Empty<Cliente>();
+    private IReadOnlyList<Localizacion> _instalaciones = Array.Empty<Localizacion>();
+    private IReadOnlyList<Sistema> _sistemas = Array.Empty<Sistema>();
+    private IReadOnlyList<Activo> _activos = Array.Empty<Activo>();
+    private IReadOnlyList<Componente> _componentes = Array.Empty<Componente>();
+
+    // Datos ampliados del cliente (cliente_datos en emios_inventario), por Id de cliente.
+    private Dictionary<int, ClienteDatos> _datosPorCliente = new();
+
+    // Listas filtradas por el buscador del nivel actual.
+    private IEnumerable<Cliente> _clientesVisibles =>
+        string.IsNullOrWhiteSpace(_busqueda)
+            ? _clientes
+            : _clientes.Where(c => c.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<Localizacion> _instalacionesVisibles =>
+        string.IsNullOrWhiteSpace(_busqueda)
+            ? _instalaciones
+            : _instalaciones.Where(l =>
+                l.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ||
+                (l.Descripcion?.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private IEnumerable<Sistema> _sistemasVisibles =>
+        string.IsNullOrWhiteSpace(_busqueda)
+            ? _sistemas
+            : _sistemas.Where(s =>
+                s.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ||
+                s.Codigo.Contains(_busqueda, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<Activo> _activosVisibles =>
+        string.IsNullOrWhiteSpace(_busqueda)
+            ? _activos
+            : _activos.Where(a =>
+                a.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ||
+                a.Codigo.Contains(_busqueda, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<Componente> _componentesVisibles =>
+        string.IsNullOrWhiteSpace(_busqueda)
+            ? _componentes
+            : _componentes.Where(c =>
+                c.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ||
+                c.Codigo.Contains(_busqueda, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+        var claim = auth.User.FindFirst("Redes")?.Value;
+        if (!string.IsNullOrWhiteSpace(claim))
+            _redes = claim.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(int.Parse).Distinct().ToList();
+        await CargarClientes();
+    }
+
+    private async Task CargarClientes()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _clientes = await Jerarquia.ListarClientesAsync(_redes);
+            _raices = _clientes
+                .Select(c => Envolver(
+                    new NodoArbol { Tipo = "cliente", Id = c.Id, Nombre = c.Nombre },
+                    expandible: true))
+                .ToList();
+
+            var todos = await ClienteDatos.ObtenerTodosAsync();
+            _datosPorCliente = todos.ToDictionary(d => d.Id);
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los clientes: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task EditarClienteDatos(Cliente cliente)
+    {
+        var parametros = new DialogParameters<ClienteDatosDialog>
+        {
+            { x => x.ClienteId, cliente.Id },
+            { x => x.ClienteNombre, cliente.Nombre }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<ClienteDatosDialog>(
+            $"Datos de {cliente.Nombre}", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await CargarClientes();
+    }
+
+    private async Task IrClientes()
+    {
+        _busqueda = string.Empty;
+        _activoSeleccionado = null;
+        _nodoSeleccionado = null;
+        _cliente = null;
+        _instalacion = null;
+        _sistema = null;
+        _activo = null;
+        await CargarClientes();
+    }
+
+    private async Task IrInstalaciones(int clienteId)
+    {
+        _busqueda = string.Empty;
+        _activoSeleccionado = null;
+        _cliente = _clientes.FirstOrDefault(c => c.Id == clienteId);
+        _instalacion = null;
+        _sistema = null;
+        _activo = null;
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _instalaciones = await Jerarquia.ListarInstalacionesAsync(clienteId, _redes);
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar las instalaciones: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task IrSistemas(int instalacionId)
+    {
+        _busqueda = string.Empty;
+        _activoSeleccionado = null;
+        _instalacion = _instalaciones.FirstOrDefault(l => l.Id == instalacionId);
+        _sistema = null;
+        _activo = null;
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _sistemas = await Jerarquia.ListarSistemasAsync(instalacionId);
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los sistemas: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task IrActivos(int sistemaId)
+    {
+        _busqueda = string.Empty;
+        _activoSeleccionado = null;
+        _sistema = _sistemas.FirstOrDefault(s => s.Id == sistemaId);
+        _activo = null;
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _activos = await Jerarquia.ListarActivosAsync(sistemaId);
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los activos: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task IrComponentes(int activoId)
+    {
+        _busqueda = string.Empty;
+        _activoSeleccionado = null;
+        _activo = _activos.FirstOrDefault(a => a.Id == activoId);
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _componentes = await Jerarquia.ListarComponentesAsync(activoId);
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los componentes: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task NuevoSistema()
+    {
+        var parametros = new DialogParameters<SistemaDialog>
+        {
+            { x => x.Modelo, new SistemaViewModel { LocalizacionId = _instalacion!.Id } }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<SistemaDialog>("Nuevo sistema", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await IrSistemas(_instalacion!.Id);
+    }
+
+    private async Task NuevoActivo()
+    {
+        var parametros = new DialogParameters<ActivoDialog>
+        {
+            { x => x.Modelo, new ActivoViewModel { SistemaId = _sistema!.Id } }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<ActivoDialog>("Nuevo activo", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await IrActivos(_sistema!.Id);
+    }
+
+    private async Task NuevoComponente()
+    {
+        var parametros = new DialogParameters<ComponenteDialog>
+        {
+            { x => x.Modelo, new ComponenteViewModel { ActivoId = _activo!.Id } }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<ComponenteDialog>("Nuevo componente", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await IrComponentes(_activo!.Id);
+    }
+
+    private async Task EliminarComponente(Componente comp)
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Eliminar componente",
+            $"¿Eliminar el componente '{comp.Nombre}'?",
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmar != true)
+            return;
+
+        try
+        {
+            await ActivoService.EliminarComponenteAsync(comp.Id);
+            Snackbar.Add("Componente eliminado correctamente.", Severity.Success);
+            await IrComponentes(_activo!.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void AlternarSeleccionActivo(Activo activo)
+    {
+        _activoSeleccionado = _activoSeleccionado?.Id == activo.Id ? null : activo;
+    }
+
+    private string? ClaseFilaActivo(Activo activo, int index)
+        => _activoSeleccionado?.Id == activo.Id ? "mud-selected" : null;
+
+    private async Task EditarSistema(Sistema sistema)
+    {
+        var vm = new SistemaViewModel
+        {
+            Id = sistema.Id,
+            Codigo = sistema.Codigo,
+            Nombre = sistema.Nombre,
+            Descripcion = sistema.Descripcion,
+            LocalizacionId = sistema.LocalizacionId,
+            Activo = sistema.Activo
+        };
+        var parametros = new DialogParameters<SistemaDialog> { { x => x.Modelo, vm } };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<SistemaDialog>($"Editar {sistema.Codigo}", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await IrSistemas(_instalacion!.Id);
+    }
+
+    private async Task EliminarSistema(Sistema sistema)
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Eliminar sistema",
+            $"¿Eliminar el sistema '{sistema.Codigo}'?",
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseButton = true });
+        if (confirmar != true)
+            return;
+        try
+        {
+            await ActivoService.EliminarSistemaAsync(sistema.Id);
+            Snackbar.Add("Sistema eliminado correctamente.", Severity.Success);
+            await IrSistemas(_instalacion!.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task EditarActivo(Activo activo)
+    {
+        var vm = new ActivoViewModel
+        {
+            Id = activo.Id,
+            Codigo = activo.Codigo,
+            Nombre = activo.Nombre,
+            Descripcion = activo.Descripcion,
+            SistemaId = activo.SistemaId,
+            TipoActivo = activo.TipoActivo,
+            Estado = activo.Estado,
+            Latitud = activo.Ubicacion?.Latitud,
+            Longitud = activo.Ubicacion?.Longitud,
+            Fabricante = activo.Fabricante,
+            Modelo = activo.Modelo,
+            NumeroSerie = activo.NumeroSerie,
+            FechaInstalacion = activo.FechaInstalacion
+        };
+        var parametros = new DialogParameters<ActivoDialog> { { x => x.Modelo, vm } };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<ActivoDialog>($"Editar {activo.Codigo}", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await IrActivos(_sistema!.Id);
+    }
+
+    private async Task EliminarActivo(Activo activo)
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Eliminar activo",
+            $"¿Eliminar el activo '{activo.Codigo}'?",
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseButton = true });
+        if (confirmar != true)
+            return;
+        try
+        {
+            await ActivoService.EliminarActivoAsync(activo.Id);
+            Snackbar.Add("Activo eliminado correctamente.", Severity.Success);
+            await IrActivos(_sistema!.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ImportarSensoresActivo()
+    {
+        if (_activoSeleccionado is null)
+            return;
+
+        _importando = true;
+        _error = null;
+        try
+        {
+            var parametros = new DialogParameters<ImportarSensoresDialog>
+            {
+                { x => x.ActivoId, _activoSeleccionado.Id },
+                { x => x.LocalizacionId, _sistema!.LocalizacionId },
+                { x => x.ActivoCodigo, _activoSeleccionado.Codigo }
+            };
+            var opciones = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true };
+            var dialogo = await DialogService.ShowAsync<ImportarSensoresDialog>(
+                "Importar sensores", parametros, opciones);
+            var resultado = await dialogo.Result;
+
+            if (resultado is { Canceled: false } && resultado.Data is List<int> ids && ids.Count > 0)
+            {
+                var creados = await ActivoService.ImportarSensoresAActivoAsync(_activoSeleccionado.Id, ids);
+                Snackbar.Add($"Se añadieron {creados} sensores al activo {_activoSeleccionado.Codigo}.", Severity.Success);
+                await IrActivos(_sistema!.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo importar: {ex.Message}";
+        }
+        finally
+        {
+            _importando = false;
+        }
+    }
+
+    private async Task MoverSensorActivo()
+    {
+        if (_activoSeleccionado is null)
+            return;
+
+        var parametros = new DialogParameters<MoverSensorDialog>
+        {
+            { x => x.ActivoId, _activoSeleccionado.Id }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<MoverSensorDialog>(
+            $"Mover sensor de {_activoSeleccionado.Codigo}", parametros, opciones);
+        var resultado = await dialogo.Result;
+
+        if (resultado is { Canceled: false } && resultado.Data is MoverSensorDialog.MoverSensorResult mv)
+        {
+            await ActivoService.MoverComponenteAsync(mv.ComponenteId, mv.NuevoActivoId);
+            Snackbar.Add("Sensor movido a otro activo.", Severity.Success);
+            await IrActivos(_sistema!.Id);
+        }
+    }
+
+    // ===== Prototipo híbrido: árbol de jerarquía =====
+    private List<TreeItemData<NodoArbol>> _raices = new();
+    private NodoArbol? _nodoSeleccionado;
+    private readonly IEqualityComparer<NodoArbol> _nodoComparer = new NodoArbolComparer();
+
+    private sealed class NodoArbol
+    {
+        public string Tipo { get; init; } = "";   // cliente|instalacion|sistema|activo|componente
+        public int Id { get; init; }
+        public string Nombre { get; init; } = "";
+        public string? Codigo { get; init; }
+        public int? ClienteId { get; init; }
+        public int? InstalacionId { get; init; }
+        public string? InstalacionNombre { get; init; }
+        public int? SistemaId { get; init; }
+        public string? SistemaNombre { get; init; }
+        public string? SistemaCodigo { get; init; }
+        public int? LocalizacionId { get; init; }
+        public int? ActivoId { get; init; }
+        public string? ActivoNombre { get; init; }
+        public string? ActivoCodigo { get; init; }
+
+        public string Clave => $"{Tipo}-{Id}";
+    }
+
+    private sealed class NodoArbolComparer : IEqualityComparer<NodoArbol>
+    {
+        public bool Equals(NodoArbol? x, NodoArbol? y) =>
+            ReferenceEquals(x, y) || (x is not null && y is not null && x.Clave == y.Clave);
+
+        public int GetHashCode(NodoArbol obj) => obj.Clave.GetHashCode();
+    }
+
+    private static string IconoNodo(string tipo) => tipo switch
+    {
+        "cliente" => Icons.Material.Filled.Business,
+        "instalacion" => Icons.Material.Filled.LocationOn,
+        "sistema" => Icons.Material.Filled.AccountTree,
+        "activo" => Icons.Material.Filled.PrecisionManufacturing,
+        "componente" => Icons.Material.Filled.Sensors,
+        _ => Icons.Material.Filled.Circle
+    };
+
+    private async Task<IReadOnlyCollection<TreeItemData<NodoArbol>>> CargarHijosAsync(NodoArbol? nodo)
+    {
+        if (nodo is null)
+            return Array.Empty<TreeItemData<NodoArbol>>();
+        try
+        {
+            var hijos = new List<TreeItemData<NodoArbol>>();
+            switch (nodo.Tipo)
+            {
+                case "cliente":
+                {
+                    var insts = await Jerarquia.ListarInstalacionesAsync(nodo.Id, _redes);
+                    foreach (var l in insts)
+                        hijos.Add(Envolver(new NodoArbol
+                        {
+                            Tipo = "instalacion", Id = l.Id, Nombre = l.Nombre,
+                            ClienteId = nodo.Id
+                        }, expandible: true));
+                    break;
+                }
+                case "instalacion":
+                {
+                    var sists = await Jerarquia.ListarSistemasAsync(nodo.Id);
+                    foreach (var s in sists)
+                        hijos.Add(Envolver(new NodoArbol
+                        {
+                            Tipo = "sistema", Id = s.Id, Nombre = s.Nombre, Codigo = s.Codigo,
+                            ClienteId = nodo.ClienteId,
+                            InstalacionId = nodo.Id, InstalacionNombre = nodo.Nombre,
+                            LocalizacionId = s.LocalizacionId
+                        }, expandible: true));
+                    break;
+                }
+                case "sistema":
+                {
+                    var actvs = await Jerarquia.ListarActivosAsync(nodo.Id);
+                    foreach (var a in actvs)
+                        hijos.Add(Envolver(new NodoArbol
+                        {
+                            Tipo = "activo", Id = a.Id, Nombre = a.Nombre, Codigo = a.Codigo,
+                            ClienteId = nodo.ClienteId,
+                            InstalacionId = nodo.InstalacionId, InstalacionNombre = nodo.InstalacionNombre,
+                            SistemaId = nodo.Id, SistemaNombre = nodo.Nombre, SistemaCodigo = nodo.Codigo,
+                            LocalizacionId = nodo.LocalizacionId
+                        }, expandible: true));
+                    break;
+                }
+                case "activo":
+                {
+                    var comps = await Jerarquia.ListarComponentesAsync(nodo.Id);
+                    foreach (var c in comps)
+                        hijos.Add(Envolver(new NodoArbol
+                        {
+                            Tipo = "componente", Id = c.Id, Nombre = c.Nombre, Codigo = c.Codigo,
+                            ClienteId = nodo.ClienteId,
+                            InstalacionId = nodo.InstalacionId, InstalacionNombre = nodo.InstalacionNombre,
+                            SistemaId = nodo.SistemaId, SistemaNombre = nodo.SistemaNombre, SistemaCodigo = nodo.SistemaCodigo,
+                            LocalizacionId = nodo.LocalizacionId,
+                            ActivoId = nodo.Id, ActivoNombre = nodo.Nombre, ActivoCodigo = nodo.Codigo
+                        }, expandible: false));
+                    break;
+                }
+            }
+            return hijos;
+        }
+        catch
+        {
+            return Array.Empty<TreeItemData<NodoArbol>>();
+        }
+    }
+
+    private static TreeItemData<NodoArbol> Envolver(NodoArbol n, bool expandible)
+    {
+        var texto = string.IsNullOrEmpty(n.Codigo) ? n.Nombre : $"{n.Nombre} · {n.Codigo}";
+        return new TreeItemData<NodoArbol>
+        {
+            Value = n,
+            Text = texto,
+            Icon = IconoNodo(n.Tipo),
+            Expandable = expandible
+        };
+    }
+
+    private async Task SeleccionarNodo(NodoArbol? nodo)
+    {
+        if (nodo is null)
+            return;
+        _nodoSeleccionado = nodo;
+        await NavegarDesdeArbol(nodo);
+    }
+
+    private async Task NavegarDesdeArbol(NodoArbol nodo)
+    {
+        _busqueda = string.Empty;
+        _activoSeleccionado = null;
+        _cargando = true;
+        _error = null;
+        try
+        {
+            switch (nodo.Tipo)
+            {
+                case "cliente":
+                    _cliente = _clientes.FirstOrDefault(c => c.Id == nodo.Id);
+                    _instalacion = null;
+                    _sistema = null;
+                    _activo = null;
+                    _instalaciones = await Jerarquia.ListarInstalacionesAsync(nodo.Id, _redes);
+                    break;
+
+                case "instalacion":
+                    _cliente = _clientes.FirstOrDefault(c => c.Id == nodo.ClienteId);
+                    _instalacion = new Localizacion { Id = nodo.Id, Nombre = nodo.Nombre };
+                    _sistema = null;
+                    _activo = null;
+                    _sistemas = await Jerarquia.ListarSistemasAsync(nodo.Id);
+                    break;
+
+                case "sistema":
+                    _cliente = _clientes.FirstOrDefault(c => c.Id == nodo.ClienteId);
+                    _instalacion = new Localizacion
+                    {
+                        Id = nodo.InstalacionId ?? nodo.LocalizacionId ?? 0,
+                        Nombre = nodo.InstalacionNombre ?? string.Empty
+                    };
+                    _sistema = new Sistema
+                    {
+                        Id = nodo.Id,
+                        Nombre = nodo.Nombre,
+                        Codigo = nodo.Codigo ?? string.Empty,
+                        LocalizacionId = nodo.LocalizacionId ?? nodo.InstalacionId ?? 0,
+                        Activo = true
+                    };
+                    _activo = null;
+                    _activos = await Jerarquia.ListarActivosAsync(nodo.Id);
+                    break;
+
+                case "activo":
+                    _cliente = _clientes.FirstOrDefault(c => c.Id == nodo.ClienteId);
+                    _instalacion = new Localizacion
+                    {
+                        Id = nodo.InstalacionId ?? 0,
+                        Nombre = nodo.InstalacionNombre ?? string.Empty
+                    };
+                    _sistema = new Sistema
+                    {
+                        Id = nodo.SistemaId ?? 0,
+                        Nombre = nodo.SistemaNombre ?? string.Empty,
+                        Codigo = nodo.SistemaCodigo ?? string.Empty,
+                        LocalizacionId = nodo.LocalizacionId ?? nodo.InstalacionId ?? 0,
+                        Activo = true
+                    };
+                    _activo = new Activo
+                    {
+                        Id = nodo.Id,
+                        Nombre = nodo.Nombre,
+                        Codigo = nodo.Codigo ?? string.Empty
+                    };
+                    _componentes = await Jerarquia.ListarComponentesAsync(nodo.Id);
+                    break;
+
+                case "componente":
+                    _cliente = _clientes.FirstOrDefault(c => c.Id == nodo.ClienteId);
+                    _instalacion = new Localizacion
+                    {
+                        Id = nodo.InstalacionId ?? 0,
+                        Nombre = nodo.InstalacionNombre ?? string.Empty
+                    };
+                    _sistema = new Sistema
+                    {
+                        Id = nodo.SistemaId ?? 0,
+                        Nombre = nodo.SistemaNombre ?? string.Empty,
+                        Codigo = nodo.SistemaCodigo ?? string.Empty,
+                        LocalizacionId = nodo.LocalizacionId ?? nodo.InstalacionId ?? 0,
+                        Activo = true
+                    };
+                    _activo = new Activo
+                    {
+                        Id = nodo.ActivoId ?? 0,
+                        Nombre = nodo.ActivoNombre ?? string.Empty,
+                        Codigo = nodo.ActivoCodigo ?? string.Empty
+                    };
+                    _componentes = await Jerarquia.ListarComponentesAsync(nodo.ActivoId ?? 0);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo cargar desde el árbol: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+}

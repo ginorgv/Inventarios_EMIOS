@@ -1,0 +1,125 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@layout BlankLayout
+@rendermode InteractiveServer
+@using Microsoft.JSInterop
+@using Inventario.Web.Theme
+@inject IJSRuntime Js
+@inject NavigationManager Nav
+
+<PageTitle>Inventario · Iniciar sesión</PageTitle>
+
+<MudThemeProvider Theme="AppTheme.Obtener()" />
+<div class="login-fondo">
+    <div class="login-caja">
+        <div class="login-izq">
+            <MudStack Spacing="3">
+                <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Class="align-self-start login-badge">
+                    📦 Sistema de Inventario
+                </MudChip>
+                <div>
+                    <MudText Typo="Typo.h5" Color="Color.Inherit">
+                        Gestión de activos<br />y localizaciones
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-3" style="opacity:.85;">
+                        Administra tu inventario por ubicaciones.
+                    </MudText>
+                </div>
+                <MudText Typo="Typo.caption" style="opacity:.7;">Emios · Inventario · v1.0</MudText>
+            </MudStack>
+        </div>
+
+        <div class="login-der">
+            <MudText Typo="Typo.h6">Iniciar sesión</MudText>
+            <MudText Typo="Typo.body2" Class="text-secondary mb-4">Accede con tu usuario de inventario</MudText>
+
+            @if (!string.IsNullOrWhiteSpace(Modelo.Error))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+                    ⚠ @Modelo.Error
+                </MudAlert>
+            }
+
+            <MudTextField T="string"
+                          Label="Usuario"
+                          @bind-Value="Modelo.Login"
+                          Placeholder="usuario"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person"
+                          Margin="Margin.None"
+                          Class="mb-4" />
+            <MudTextField T="string"
+                          Label="Contraseña"
+                          @bind-Value="Modelo.Password"
+                          InputType="InputType.Password"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          Margin="Margin.None"
+                          Class="mb-4" />
+
+            <MudCheckBox T="bool" @bind-Value="_recordar" Label="Recordarme" Class="mb-4" />
+
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                       Disabled="_cargando" OnClick="@Entrar">
+                @(_cargando ? "Comprobando..." : "Entrar")
+            </MudButton>
+
+            <MudText Typo="Typo.caption" Class="text-center mt-6 text-secondary">© 2026 Emios · Inventario · v1.0</MudText>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginViewModel Modelo { get; set; } = new();
+    private bool _recordar = true;
+    private bool _cargando;
+
+    private async Task Entrar()
+    {
+        if (_cargando)
+            return;
+
+        if (string.IsNullOrWhiteSpace(Modelo.Login) || string.IsNullOrWhiteSpace(Modelo.Password))
+        {
+            Modelo.Error = "Introduce usuario y contraseña.";
+            return;
+        }
+
+        _cargando = true;
+        Modelo.Error = null;
+
+        try
+        {
+            // El fetch se ejecuta en el NAVEGADOR (vía JS interop): así el navegador
+            // almacena la cookie que firma /api/login en el contexto HTTP normal.
+            var status = await Js.InvokeAsync<int>(
+                "loginApi.iniciar",
+                "/api/login",
+                Modelo.Login,
+                Modelo.Password,
+                _recordar);
+
+            if (status == 401)
+            {
+                Modelo.Error = "Credenciales incorrectas.";
+                return;
+            }
+
+            if (status < 200 || status >= 300)
+            {
+                Modelo.Error = "No se pudo iniciar sesión. Inténtalo de nuevo.";
+                return;
+            }
+
+            Nav.NavigateTo("/", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Modelo.Error = $"Error al iniciar sesión: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+}

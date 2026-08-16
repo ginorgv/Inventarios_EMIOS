@@ -1,0 +1,202 @@
+﻿@page "/"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Inventario.Domain.ValueObjects
+@inject Inventario.Web.Services.IActivoService ActivoService
+@inject Inventario.Infrastructure.Services.ServicioSincronizacion Sincronizacion
+
+<PageTitle>Dashboard · Inventario</PageTitle>
+
+@if (_error != null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">⚠ @_error</MudAlert>
+}
+
+@if (!_conectadoEmios || !_conectadoInventario)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Class="mb-4">
+        Estado de conexión: EMIOS (@(_conectadoEmios ? "OK" : "sin conexión")) ·
+        Inventario (@(_conectadoInventario ? "OK" : "sin conexión")). Comprueba las cadenas de conexión en appsettings.json.
+    </MudAlert>
+}
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="1" Class="rounded">
+            <MudCardContent>
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.h4" Color="Color.Primary" Class="font-weight-bold">@_totalActivos</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary">Activos totales</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Large" Class="text-secondary" />
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="1" Class="rounded">
+            <MudCardContent>
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.h4" Color="Color.Success" Class="font-weight-bold">@_enServicio</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary">En servicio</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" />
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="1" Class="rounded">
+            <MudCardContent>
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.h4" Color="Color.Warning" Class="font-weight-bold">@_enReparacion</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary">En reparación</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Large" Color="Color.Warning" />
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudCard Elevation="1" Class="rounded">
+            <MudCardContent>
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <div>
+                        <MudText Typo="Typo.h4" Color="Color.Error" Class="font-weight-bold">@_deBaja</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary">De baja</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.PauseCircle" Size="Size.Large" Color="Color.Error" />
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<MudCard Elevation="1" Class="mt-4 rounded">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">📊 Activos por sistema</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (_porSistema.Count == 0)
+        {
+            <MudText Class="text-secondary">Sin datos para mostrar.</MudText>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                @foreach (var s in _porSistema)
+                {
+                    <MudItem xs="12" md="6">
+                        <div class="d-flex justify-space-between mb-1">
+                            <MudText Typo="Typo.body2">@s.Nombre</MudText>
+                            <MudText Typo="Typo.body2" Class="text-secondary">@s.Cantidad activos</MudText>
+                        </div>
+                        <MudProgressLinear Value="s.Porcentaje" Color="Color.Primary" Rounded="true" Size="Size.Small" />
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudCardContent>
+</MudCard>
+
+<MudCard Elevation="1" Class="mt-4 rounded">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">🕘 Últimos activos</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (_ultimos.Count == 0)
+        {
+            <MudText Class="text-secondary">Todavía no hay activos registrados.</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Hover="true">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Sistema</th>
+                        <th>Nº serie</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in _ultimos)
+                    {
+                        <tr>
+                            <td class="font-weight-bold">@a.Codigo</td>
+                            <td>@a.Nombre</td>
+                            <td>@a.SistemaNombre</td>
+                            <td>@(string.IsNullOrEmpty(a.NumeroSerie) ? "—" : a.NumeroSerie)</td>
+                            <td><ChipEstado Estado="a.Estado" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private int _totalActivos;
+    private int _enServicio;
+    private int _enReparacion;
+    private int _deBaja;
+    private string? _error;
+    private bool _conectadoEmios;
+    private bool _conectadoInventario;
+
+    private List<(string Nombre, int Cantidad, int Porcentaje)> _porSistema = new();
+    private IReadOnlyList<Inventario.Application.Dtos.ActivoDto> _ultimos =
+        Array.Empty<Inventario.Application.Dtos.ActivoDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var resultado = await Sincronizacion.VerificarAsync();
+            _conectadoEmios = resultado.Emios301Ok;
+            _conectadoInventario = resultado.InventarioOk;
+        }
+        catch
+        {
+            _conectadoEmios = false;
+            _conectadoInventario = false;
+        }
+
+        try
+        {
+            var activos = await ActivoService.ListarActivosAsync();
+            _totalActivos = activos.Count;
+            _enServicio = activos.Count(a => a.Estado == EstadoActivo.Activo);
+            _enReparacion = activos.Count(a => a.Estado == EstadoActivo.EnMantenimiento);
+            _deBaja = activos.Count(a => a.Estado == EstadoActivo.Baja);
+
+            var agrupados = activos
+                .GroupBy(a => a.SistemaNombre)
+                .Select(g => new { Nombre = g.Key, Cantidad = g.Count() })
+                .OrderByDescending(x => x.Cantidad)
+                .Take(5)
+                .ToList();
+
+            var max = agrupados.Count > 0 ? agrupados.Max(x => x.Cantidad) : 1;
+            _porSistema = agrupados
+                .Select(x => (x.Nombre, x.Cantidad, Porcentaje: (int)Math.Round(x.Cantidad * 100d / max)))
+                .ToList();
+
+            _ultimos = activos.OrderByDescending(a => a.Id).Take(5).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los datos: {ex.Message}";
+        }
+    }
+}
+

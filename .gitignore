@@ -1,0 +1,28 @@
+# ---- Visual Studio / VS Code ----
+.vs/
+.vscode/
+*.user
+*.suo
+
+# ---- .NET (build output) ----
+**/bin/
+**/obj/
+publish/
+out/
+
+# ---- Logs y salidas de consola ----
+*.log
+run*.log
+run*.err
+*.err
+
+# ---- Entorno / secretos ----
+.env
+appsettings.Local.json
+
+# ---- Subidas locales ----
+wwwroot/uploads/
+
+# ---- Misc ----
+*.tmp
+.DS_Store

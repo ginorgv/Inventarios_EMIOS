@@ -1,0 +1,24 @@
+@using Inventario.Domain.ValueObjects
+
+<MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@_color">@_texto</MudChip>
+
+@code {
+    [Parameter]
+    public EstadoActivo Estado { get; set; }
+
+    private string _texto => Estado switch
+    {
+        EstadoActivo.Activo => "Alta",
+        EstadoActivo.EnMantenimiento => "Reparación",
+        EstadoActivo.Baja => "Baja",
+        _ => "Inactivo"
+    };
+
+    private Color _color => Estado switch
+    {
+        EstadoActivo.Activo => Color.Success,
+        EstadoActivo.EnMantenimiento => Color.Warning,
+        EstadoActivo.Baja => Color.Error,
+        _ => Color.Default
+    };
+}

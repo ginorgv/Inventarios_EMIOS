@@ -1,0 +1,8 @@
+@rendermode InteractiveServer
+
+@* Proveedores de MudBlazor en el árbol INTERACTIVO: sin esto, los diálogos,
+   popovers y snackbars lanzados desde páginas interactivas no se renderizan
+   porque el layout es estático. *@
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />

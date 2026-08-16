@@ -1,0 +1,83 @@
+@inject Inventario.Web.Services.IActivoService ActivoService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Nuevo componente</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_valido">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Código *" @bind-Value="Modelo.Codigo"
+                                  Required="true" RequiredError="El código es obligatorio." />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Nombre *" @bind-Value="Modelo.Nombre"
+                                  Required="true" RequiredError="El nombre es obligatorio." />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Tipo" @bind-Value="Modelo.Tipo" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Unidad" @bind-Value="Modelo.RangoUnidad" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" Label="Rango mínimo" @bind-Value="Modelo.RangoMinimo" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" Label="Rango máximo" @bind-Value="Modelo.RangoMaximo" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Descripción" @bind-Value="Modelo.Descripcion" Lines="2" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="!_valido" OnClick="Guardar">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public ComponenteViewModel Modelo { get; set; } = new();
+
+    private MudForm? _form;
+    private bool _valido;
+    private bool _cargando;
+
+    private void Cancelar() => Dialog?.Cancel();
+
+    private async Task Guardar()
+    {
+        if (_cargando || _form is null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_valido)
+            return;
+
+        _cargando = true;
+        try
+        {
+            var id = await ActivoService.CrearComponenteAsync(Modelo);
+            Snackbar.Add($"Componente creado correctamente (id {id}).", Severity.Success);
+            Dialog?.Close(DialogResult.Ok(Modelo));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+}

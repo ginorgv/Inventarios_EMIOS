@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Inventario.Application/Inventario.Application.csproj" />
+    <Project Path="src/Inventario.Domain/Inventario.Domain.csproj" />
+    <Project Path="src/Inventario.Infrastructure/Inventario.Infrastructure.csproj" />
+    <Project Path="src/Inventario.Web/Inventario.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Inventario.Application.Tests/Inventario.Application.Tests.csproj" />
+    <Project Path="tests/Inventario.Domain.Tests/Inventario.Domain.Tests.csproj" />
+  </Folder>
+  <Project Path="../../AppData/Local/Temp/emios_crypt/emios_crypt.csproj" />
+  <Project Path="../../AppData/Local/Temp/emios_inspect/emios_inspect.csproj" />
+  <Project Path="../../AppData/Local/Temp/emios_verify/emios_verify.csproj" />
+</Solution>

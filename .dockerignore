@@ -1,0 +1,12 @@
+# Contexto de build de Docker: excluye lo que no se necesita para publicar.
+.git
+.vs
+**/bin
+**/obj
+tests
+*.log
+*.err
+*.user
+run*
+publish/
+out/

@@ -1,0 +1,135 @@
+@using Inventario.Domain.ValueObjects
+@inject Inventario.Web.Services.IActivoService ActivoService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(EsEdicion ? "Editar activo" : "Nuevo activo")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_valido">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Código *" @bind-Value="Modelo.Codigo"
+                                  Required="true" RequiredError="El código es obligatorio." />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Nombre *" @bind-Value="Modelo.Nombre"
+                                  Required="true" RequiredError="El nombre es obligatorio." />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="Sistema *" @bind-Value="Modelo.SistemaId"
+                               Required="true" RequiredError="Selecciona un sistema.">
+                        @foreach (var s in _sistemas)
+                        {
+                            <MudSelectItem T="int" Value="@s.Id">@s.Codigo · @s.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="EstadoActivo" Label="Estado" @bind-Value="Modelo.Estado">
+                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Activo">Alta</MudSelectItem>
+                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Inactivo">Inactivo</MudSelectItem>
+                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.EnMantenimiento">En reparación</MudSelectItem>
+                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Baja">Baja</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Tipo / Categoría" @bind-Value="Modelo.TipoActivo" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Nº de serie" @bind-Value="Modelo.NumeroSerie" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Fabricante" @bind-Value="Modelo.Fabricante" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Modelo" @bind-Value="Modelo.Modelo" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="double?" Label="Latitud" @bind-Value="Modelo.Latitud" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="double?" Label="Longitud" @bind-Value="Modelo.Longitud" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Fecha de instalación" @bind-Date="Modelo.FechaInstalacion" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Descripción" @bind-Value="Modelo.Descripcion" Lines="3" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="!_valido" OnClick="Guardar">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public ActivoViewModel Modelo { get; set; } = new();
+
+    private MudForm? _form;
+    private bool _valido;
+    private bool _cargando;
+    private IReadOnlyList<Inventario.Application.Dtos.SistemaDto> _sistemas =
+        Array.Empty<Inventario.Application.Dtos.SistemaDto>();
+
+    private bool EsEdicion => Modelo.Id > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _sistemas = await ActivoService.ListarSistemasAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"No se pudieron cargar los sistemas: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancelar() => Dialog?.Cancel();
+
+    private async Task Guardar()
+    {
+        if (_cargando || _form is null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_valido)
+            return;
+
+        _cargando = true;
+        try
+        {
+            if (EsEdicion)
+            {
+                await ActivoService.ActualizarActivoAsync(Modelo);
+                Snackbar.Add("Activo actualizado correctamente.", Severity.Success);
+            }
+            else
+            {
+                var id = await ActivoService.CrearActivoAsync(Modelo);
+                Snackbar.Add($"Activo creado correctamente (id {id}).", Severity.Success);
+            }
+
+            Dialog?.Close(DialogResult.Ok(Modelo));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+}

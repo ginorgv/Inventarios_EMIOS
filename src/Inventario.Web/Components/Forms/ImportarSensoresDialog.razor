@@ -1,0 +1,94 @@
+@inject Inventario.Web.Services.IActivoService ActivoService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Importar sensores · @ActivoCodigo</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3 text-secondary">
+            Sensores disponibles en la geolocalización del activo. Marca los que quieras añadir.
+        </MudText>
+
+        @if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-3">⚠ @_error</MudAlert>
+        }
+
+        @if (!_cargando && _sensores.Count == 0)
+        {
+            <MudText Class="text-secondary">No hay sensores disponibles en esta localización.</MudText>
+        }
+        else
+        {
+            <MudTable T="Inventario.Domain.Entities.Sensor" Items="_sensores" Hover="true" Dense="true"
+                      Breakpoint="Breakpoint.Sm" Loading="_cargando">
+                <HeaderContent>
+                    <MudTh></MudTh>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Clase</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="">
+                        <MudCheckBox T="bool" Value="_seleccionados.Contains(context.Id)"
+                                     ValueChanged="(_) => Alternar(context.Id)" />
+                    </MudTd>
+                    <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+                    <MudTd DataLabel="Clase">@(context.Clase ?? "—")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled"
+                   Disabled="_seleccionados.Count == 0 || _cargando" OnClick="Confirmar">
+            Añadir seleccionados (@_seleccionados.Count)
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public int ActivoId { get; set; }
+
+    [Parameter]
+    public int LocalizacionId { get; set; }
+
+    [Parameter]
+    public string ActivoCodigo { get; set; } = string.Empty;
+
+    private List<Inventario.Domain.Entities.Sensor> _sensores = new();
+    private HashSet<int> _seleccionados = new();
+    private bool _cargando = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _sensores = (await ActivoService.ListarSensoresDisponiblesAsync(LocalizacionId)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los sensores: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private void Alternar(int sensorId)
+    {
+        if (!_seleccionados.Add(sensorId))
+            _seleccionados.Remove(sensorId);
+    }
+
+    private void Cancelar() => Dialog?.Cancel();
+
+    private void Confirmar() => Dialog?.Close(DialogResult.Ok(_seleccionados.ToList()));
+}

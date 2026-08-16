@@ -1,0 +1,39 @@
+/* ============================================================
+   Mejoras de aspecto EMIOS (estilos globales)
+   ============================================================ */
+
+/* ---- Diálogos: menos pálidos, con cabecera verde ----
+   MudBlazor renderiza los diálogos con .mud-dialog,
+   cabecera .mud-dialog-title, cuerpo .mud-dialog-content
+   y pie .mud-dialog-actions. */
+.mud-dialog {
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .28);
+    border: 1px solid rgba(0, 0, 0, .06);
+    overflow: hidden;
+}
+
+.mud-dialog .mud-dialog-title {
+    background: linear-gradient(135deg, #1B3A1B 0%, #298B21 100%);
+    color: #fff;
+    padding: 18px 24px;
+}
+
+.mud-dialog .mud-dialog-title .mud-typography {
+    color: #fff;
+    font-weight: 600;
+}
+
+.mud-dialog .mud-dialog-content {
+    padding: 24px;
+}
+
+.mud-dialog .mud-dialog-actions {
+    padding: 8px 24px 20px;
+}
+
+/* ---- Botones "Ver" de navegación de filas: más intuitivos ---- */
+.mud-button-text.mud-button-text-primary {
+    text-transform: none;
+    font-weight: 600;
+}

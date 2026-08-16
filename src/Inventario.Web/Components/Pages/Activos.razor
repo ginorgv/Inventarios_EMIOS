@@ -1,0 +1,249 @@
+@page "/activos"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Inventario.Domain.ValueObjects
+@inject Inventario.Web.Services.IActivoService ActivoService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>Activos · Inventario</PageTitle>
+
+<MudCard Elevation="1" Class="rounded">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">🗂 Catálogo de activos</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.Download"
+                       Disabled="_seleccionado is null || _importando"
+                       OnClick="@ImportarSensores">
+                @(_importando ? "Importando..." : "Importar sensores")
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                       StartIcon="@Icons.Material.Filled.SwapHoriz"
+                       Disabled="_seleccionado is null"
+                       OnClick="@MoverSensor">
+                Mover sensor
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="@Nuevo">
+                Añadir activo
+            </MudButton>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTextField T="string"
+                      Placeholder="🔍 Buscar por código, nombre, Nº serie..."
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Immediate="true"
+                      @bind-Value="_busqueda"
+                      Class="mb-4" />
+
+        @if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">⚠ @_error</MudAlert>
+        }
+
+        <MudTable T="Inventario.Application.Dtos.ActivoDto"
+                  Items="_filtrados"
+                  Hover="true"
+                  Breakpoint="Breakpoint.Sm"
+                  RowsPerPage="10"
+                  Loading="_cargando"
+                  RowClassFunc="ClaseFila">
+            <HeaderContent>
+                <MudTh></MudTh>
+                <MudTh>Código</MudTh>
+                <MudTh>Nombre</MudTh>
+                <MudTh>Tipo</MudTh>
+                <MudTh>Sistema</MudTh>
+                <MudTh>Nº serie</MudTh>
+                <MudTh>Estado</MudTh>
+                <MudTh>Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="">
+                    <MudCheckBox T="bool" Value="_seleccionado?.Id == context.Id"
+                                 ValueChanged="(_) => AlternarSeleccion(context)" />
+                </MudTd>
+                <MudTd DataLabel="Código"><b>@context.Codigo</b></MudTd>
+                <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+                <MudTd DataLabel="Tipo">@(string.IsNullOrEmpty(context.TipoActivo) ? "—" : context.TipoActivo)</MudTd>
+                <MudTd DataLabel="Sistema">@context.SistemaNombre</MudTd>
+                <MudTd DataLabel="Nº serie">@(string.IsNullOrEmpty(context.NumeroSerie) ? "—" : context.NumeroSerie)</MudTd>
+                <MudTd DataLabel="Estado"><ChipEstado Estado="context.Estado" /></MudTd>
+                <MudTd DataLabel="Acciones">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar"
+                                   OnClick="() => Editar(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   aria-label="Eliminar" OnClick="() => Eliminar(context)" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+            </PagerContent>
+        </MudTable>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private string _busqueda = string.Empty;
+    private string? _error;
+    private bool _cargando = true;
+    private bool _importando;
+    private Inventario.Application.Dtos.ActivoDto? _seleccionado;
+    private List<Inventario.Application.Dtos.ActivoDto> _activos = new();
+
+    private IEnumerable<Inventario.Application.Dtos.ActivoDto> _filtrados =>
+        string.IsNullOrWhiteSpace(_busqueda)
+            ? _activos
+            : _activos.Where(a =>
+                a.Codigo.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ||
+                a.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ||
+                (a.NumeroSerie?.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _activos = (await ActivoService.ListarActivosAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los activos: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task Nuevo()
+    {
+        var parametros = new DialogParameters<ActivoDialog>
+        {
+            { x => x.Modelo, new ActivoViewModel() }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var dialogo = await DialogService.ShowAsync<ActivoDialog>("Nuevo activo", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await Cargar();
+    }
+
+    private void AlternarSeleccion(Inventario.Application.Dtos.ActivoDto activo)
+    {
+        _seleccionado = _seleccionado?.Id == activo.Id ? null : activo;
+    }
+
+    private string? ClaseFila(Inventario.Application.Dtos.ActivoDto activo, int index)
+        => _seleccionado?.Id == activo.Id ? "mud-selected" : null;
+
+    private async Task ImportarSensores()
+    {
+        if (_seleccionado is null)
+            return;
+
+        _importando = true;
+        _error = null;
+        try
+        {
+            var parametros = new DialogParameters<ImportarSensoresDialog>
+            {
+                { x => x.ActivoId, _seleccionado.Id },
+                { x => x.LocalizacionId, _seleccionado.LocalizacionId },
+                { x => x.ActivoCodigo, _seleccionado.Codigo }
+            };
+            var opciones = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true };
+            var dialogo = await DialogService.ShowAsync<ImportarSensoresDialog>(
+                "Importar sensores", parametros, opciones);
+            var resultado = await dialogo.Result;
+
+            if (resultado is { Canceled: false } && resultado.Data is List<int> ids && ids.Count > 0)
+            {
+                var creados = await ActivoService.ImportarSensoresAActivoAsync(_seleccionado.Id, ids);
+                Snackbar.Add($"Se añadieron {creados} sensores al activo {_seleccionado.Codigo}.", Severity.Success);
+                await Cargar();
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo importar: {ex.Message}";
+        }
+        finally
+        {
+            _importando = false;
+        }
+    }
+
+    private async Task MoverSensor()
+    {
+        if (_seleccionado is null)
+            return;
+
+        var parametros = new DialogParameters<MoverSensorDialog>
+        {
+            { x => x.ActivoId, _seleccionado.Id }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<MoverSensorDialog>(
+            $"Mover sensor de {_seleccionado.Codigo}", parametros, opciones);
+        var resultado = await dialogo.Result;
+
+        if (resultado is { Canceled: false } && resultado.Data is MoverSensorDialog.MoverSensorResult mv)
+        {
+            await ActivoService.MoverComponenteAsync(mv.ComponenteId, mv.NuevoActivoId);
+            Snackbar.Add("Sensor movido a otro activo.", Severity.Success);
+            await Cargar();
+        }
+    }
+
+    private async Task Editar(Inventario.Application.Dtos.ActivoDto activo)
+    {
+        var parametros = new DialogParameters<ActivoDialog>
+        {
+            { x => x.Modelo, ActivoViewModel.FromDto(activo) }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var dialogo = await DialogService.ShowAsync<ActivoDialog>($"Editar {activo.Codigo}", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await Cargar();
+    }
+
+    private async Task Eliminar(Inventario.Application.Dtos.ActivoDto activo)
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Eliminar activo",
+            $"¿Eliminar el activo '{activo.Codigo}'? Esta acción no se puede deshacer.",
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmar != true)
+            return;
+
+        try
+        {
+            await ActivoService.EliminarActivoAsync(activo.Id);
+            Snackbar.Add("Activo eliminado correctamente.", Severity.Success);
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+        }
+    }
+}

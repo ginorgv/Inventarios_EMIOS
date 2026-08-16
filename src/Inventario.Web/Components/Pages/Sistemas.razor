@@ -1,0 +1,162 @@
+@page "/sistemas"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject Inventario.Web.Services.IActivoService ActivoService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Sistemas · Inventario</PageTitle>
+
+<MudCard Elevation="1" Class="rounded">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">🗄 Sistemas (Nivel 3)</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="@Nuevo">
+                Añadir sistema
+            </MudButton>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTextField T="string"
+                      Placeholder="🔍 Buscar por código o nombre..."
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Immediate="true"
+                      @bind-Value="_busqueda"
+                      Class="mb-4" />
+
+        @if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">⚠ @_error</MudAlert>
+        }
+
+        <MudTable T="Inventario.Application.Dtos.SistemaDto"
+                  Items="_filtrados"
+                  Hover="true"
+                  Breakpoint="Breakpoint.Sm"
+                  RowsPerPage="10"
+                  Loading="_cargando">
+            <HeaderContent>
+                <MudTh>Código</MudTh>
+                <MudTh>Nombre</MudTh>
+                <MudTh>Localización</MudTh>
+                <MudTh>Activos</MudTh>
+                <MudTh>Estado</MudTh>
+                <MudTh>Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Código"><b>@context.Codigo</b></MudTd>
+                <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+                <MudTd DataLabel="Localización">@context.LocalizacionNombre</MudTd>
+                <MudTd DataLabel="Activos">@context.CantidadActivos</MudTd>
+                <MudTd DataLabel="Estado">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                             Color="@(context.Activo ? Color.Success : Color.Default)">
+                        @(context.Activo ? "Activo" : "Inactivo")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Acciones">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" aria-label="Editar"
+                                   OnClick="() => Editar(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   aria-label="Eliminar" OnClick="() => Eliminar(context)" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+            </PagerContent>
+        </MudTable>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private string _busqueda = string.Empty;
+    private string? _error;
+    private bool _cargando = true;
+    private List<Inventario.Application.Dtos.SistemaDto> _sistemas = new();
+
+    private IEnumerable<Inventario.Application.Dtos.SistemaDto> _filtrados =>
+        string.IsNullOrWhiteSpace(_busqueda)
+            ? _sistemas
+            : _sistemas.Where(s =>
+                s.Codigo.Contains(_busqueda, StringComparison.OrdinalIgnoreCase) ||
+                s.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        _cargando = true;
+        _error = null;
+        try
+        {
+            _sistemas = (await ActivoService.ListarSistemasAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los sistemas: {ex.Message}";
+        }
+        finally
+        {
+            _cargando = false;
+        }
+    }
+
+    private async Task Nuevo()
+    {
+        var parametros = new DialogParameters<SistemaDialog>
+        {
+            { x => x.Modelo, new SistemaViewModel() }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var dialogo = await DialogService.ShowAsync<SistemaDialog>("Nuevo sistema", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await Cargar();
+    }
+
+    private async Task Editar(Inventario.Application.Dtos.SistemaDto sistema)
+    {
+        var parametros = new DialogParameters<SistemaDialog>
+        {
+            { x => x.Modelo, SistemaViewModel.FromDto(sistema) }
+        };
+        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+        var dialogo = await DialogService.ShowAsync<SistemaDialog>($"Editar {sistema.Codigo}", parametros, opciones);
+        var resultado = await dialogo.Result;
+        if (resultado is { Canceled: false })
+            await Cargar();
+    }
+
+    private async Task Eliminar(Inventario.Application.Dtos.SistemaDto sistema)
+    {
+        var confirmar = await DialogService.ShowMessageBoxAsync(
+            "Eliminar sistema",
+            $"¿Eliminar el sistema '{sistema.Codigo}'?",
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseButton = true });
+
+        if (confirmar != true)
+            return;
+
+        try
+        {
+            await ActivoService.EliminarSistemaAsync(sistema.Id);
+            Snackbar.Add("Sistema eliminado correctamente.", Severity.Success);
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+        }
+    }
+}

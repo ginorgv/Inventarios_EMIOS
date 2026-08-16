@@ -1,0 +1,21 @@
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+
+<MudTextField T="string"
+              Placeholder="Buscar activo, código, Nº serie..."
+              Variant="Variant.Outlined"
+              Margin="Margin.Dense"
+              Class="topbar-buscar"
+              @bind-Value="_busqueda"
+              OnKeyDown="BuscarPorEnter" />
+<MudSpacer />
+
+@code {
+    private string _busqueda = string.Empty;
+
+    private void BuscarPorEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Nav.NavigateTo($"/activos?busqueda={Uri.EscapeDataString(_busqueda)}");
+    }
+}

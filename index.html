@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario · App</title>
+<style>
+  :root{
+    --p:#2563eb; --p2:#1d4ed8; --bg:#f1f5f9; --card:#fff; --tx:#0f172a; --tx2:#64748b;
+    --line:#e2e8f0; --ok:#16a34a; --warn:#f59e0b; --err:#ef4444; --side:#0f172a; --side2:#1e293b;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI',system-ui,sans-serif;}
+  body{background:var(--bg); color:var(--tx); display:flex; min-height:100vh;}
+  /* ===== SIDEBAR ===== */
+  .side{width:236px; background:linear-gradient(180deg,var(--side),#111c34); color:#cbd5e1; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0;}
+  .side .logo{display:flex; align-items:center; gap:10px; padding:20px 18px; font-size:16px; font-weight:700; color:#fff; border-bottom:1px solid rgba(255,255,255,.08);}
+  .side .logo span{font-size:22px;}
+  .side nav{flex:1; padding:14px 10px; overflow:auto;}
+  .side nav .grup{font-size:11px; text-transform:uppercase; letter-spacing:.8px; color:#64748b; padding:14px 10px 6px;}
+  .side nav a{display:flex; align-items:center; gap:11px; padding:10px 12px; margin:2px 0; border-radius:9px; color:#cbd5e1; text-decoration:none; font-size:14px; cursor:pointer; transition:.15s;}
+  .side nav a:hover{background:rgba(255,255,255,.06); color:#fff;}
+  .side nav a.act{background:var(--p); color:#fff; font-weight:600;}
+  .side nav a .ico{font-size:17px; width:22px; text-align:center;}
+  .side .usuario{border-top:1px solid rgba(255,255,255,.08); padding:14px 16px; display:flex; align-items:center; gap:10px;}
+  .side .usuario .avatar{width:36px;height:36px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .side .usuario .info{font-size:13px;} .side .usuario .info b{color:#fff; display:block;}
+  /* ===== MAIN ===== */
+  .main{margin-left:236px; flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{height:60px; background:var(--card); border-bottom:1px solid var(--line); display:flex; align-items:center; gap:16px; padding:0 24px;}
+  .topbar .buscador{flex:1; max-width:420px; display:flex; align-items:center; background:#f8fafc; border:1px solid var(--line); border-radius:9px; padding:8px 12px; gap:8px;}
+  .topbar .buscador input{border:none; background:transparent; outline:none; width:100%; font-size:14px;}
+  .topbar .red{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--tx2);}
+  .topbar .red select{border:1px solid var(--line); border-radius:8px; padding:7px 10px; font-size:14px; background:#fff;}
+  .contenido{padding:24px; overflow:auto; flex:1;}
+  .vista{display:none;} .vista.activa{display:block; animation:fade .25s;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);}to{opacity:1; transform:none;}}
+  /* ===== CARDS / TABLAS / BOTONES ===== */
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:18px;}
+  .card h3{font-size:15px; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:18px;}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px;}
+  .kpi .n{font-size:30px; font-weight:800; color:var(--tx);}
+  .kpi .l{font-size:13px; color:var(--tx2); margin-top:2px;}
+  .kpi .i{float:right; font-size:26px; opacity:.35;}
+  .kpi.azul .n{color:var(--p);} .kpi.verde .n{color:var(--ok);} .kpi.ambar .n{color:var(--warn);} .kpi.rojo .n{color:var(--err);}
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.5px; color:var(--tx2); padding:10px 12px; border-bottom:2px solid var(--line);}
+  td{padding:10px 12px; border-bottom:1px solid var(--line);}
+  tr:hover td{background:#f8fafc;}
+  .filtros{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center;}
+  .filtros input,.filtros select{border:1px solid var(--line); border-radius:8px; padding:9px 12px; font-size:14px; background:#fff;}
+  .filtros input[type=text]{min-width:220px;}
+  .btn{border:none; border-radius:8px; padding:9px 14px; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:.15s;}
+  .btn-pr{background:var(--p); color:#fff;} .btn-pr:hover{background:var(--p2);}
+  .btn-sec{background:#fff; border:1px solid var(--line); color:var(--tx);} .btn-sec:hover{background:#f8fafc;}
+  .btn-verde{background:var(--ok); color:#fff;} .btn-rojo{background:var(--err); color:#fff;}
+  .chip{display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600;}
+  .chip-alta{background:#dcfce7; color:#166534;} .chip-baja{background:#fee2e2; color:#991b1b;}
+  .chip-repara{background:#fef3c7; color:#92400e;} .chip-almacen{background:#dbeafe; color:#1e40af;}
+  .acciones{display:flex; gap:6px;}
+  .acciones button{border:1px solid var(--line); background:#fff; border-radius:7px; width:30px; height:30px; cursor:pointer; font-size:14px;}
+  .acciones button:hover{border-color:var(--p); color:var(--p);}
+  .paginacion{display:flex; align-items:center; justify-content:space-between; margin-top:14px; font-size:13px; color:var(--tx2);}
+  .paginacion .botones button{margin-left:6px;}
+  /* ===== MODAL ===== */
+  .modal-bg{position:fixed; inset:0; background:rgba(15,23,42,.55); display:none; align-items:flex-start; justify-content:center; padding:40px 16px; z-index:50; overflow:auto;}
+  .modal-bg.abierta{display:flex;}
+  .modal{background:#fff; border-radius:16px; width:100%; max-width:680px; box-shadow:0 25px 60px rgba(2,6,23,.4); animation:fade .2s;}
+  .modal .cab{padding:18px 22px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between;}
+  .modal .cab h3{font-size:16px;} .modal .cab button{background:none;border:none;font-size:20px;cursor:pointer;color:var(--tx2);}
+  .modal .cuerpo{padding:22px; display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .modal .cuerpo .full{grid-column:1/-1;}
+  .campo label{display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:var(--tx);}
+  .campo input,.campo select,.campo textarea{width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-size:14px; background:#f8fafc;}
+  .campo input:focus,.campo select:focus,.campo textarea:focus{outline:none; border-color:var(--p); background:#fff;}
+  .modal .pie{padding:16px 22px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:10px;}
+  /* ===== ARBOL ===== */
+  .arbol{font-size:14px;}
+  .arbol .rama{margin-left:18px; border-left:1px dashed var(--line); padding-left:14px;}
+  .arbol .nodo{display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; cursor:pointer;}
+  .arbol .nodo:hover{background:#f1f5f9;}
+  .arbol .nodo.sel{background:#dbeafe; color:var(--p); font-weight:600;}
+  .arbol .nodo .tor{width:14px; text-align:center; color:var(--tx2); cursor:pointer;}
+  .arbol .nodo .ico{opacity:.6;}
+  .arbol .nodo .cnt{margin-left:auto; font-size:12px; background:#e2e8f0; padding:1px 8px; border-radius:999px;}
+  /* ===== LAYOUT DOS PANELES ===== */
+  .dos{display:grid; grid-template-columns:300px 1fr; gap:18px;}
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px;}
+  .panel h4{font-size:14px; margin-bottom:12px;}
+  /* ===== UTILS ===== */
+  .estado-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+  .ok{color:var(--ok);} .err{color:var(--err);}
+  .barra{height:8px; background:#e2e8f0; border-radius:99px; overflow:hidden;}
+  .barra span{display:block; height:100%; background:var(--p); border-radius:99px;}
+  @media(max-width:900px){ .dos{grid-template-columns:1fr;} .side{width:200px;} .main{margin-left:200px;} }
+</style>
+</head>
+<body>
+
+<!-- ============ SIDEBAR ============ -->
+<aside class="side">
+  <div class="logo"><span>📦</span> Inventario</div>
+  <nav>
+    <div class="grup">General</div>
+    <a class="act" data-v="dashboard"><span class="ico">▦</span> Dashboard</a>
+    <a data-v="activos"><span class="ico">🗂</span> Activos</a>
+    <a data-v="localizaciones"><span class="ico">📍</span> Localizaciones</a>
+    <div class="grup">Operaciones</div>
+    <a data-v="movimientos"><span class="ico">⇄</span> Movimientos</a>
+    <a data-v="mantenimientos"><span class="ico">🛠</span> Mantenimientos</a>
+    <div class="grup">Sistema</div>
+    <a data-v="usuarios"><span class="ico">👥</span> Usuarios</a>
+    <a href="login.html"><span class="ico">⏻</span> Salir</a>
+  </nav>
+  <div class="usuario">
+    <div class="avatar">AD</div>
+    <div class="info"><b>Admin</b>Administrador</div>
+  </div>
+</aside>
+
+<!-- ============ MAIN ============ -->
+<div class="main">
+  <div class="topbar">
+    <div class="buscador">🔍 <input placeholder="Buscar activo, código, Nº serie..."></div>
+    <div class="red">Red: <select><option>Pruebas_Brener</option><option>Telnet</option><option>Nettrim</option></select></div>
+  </div>
+
+  <div class="contenido">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="vista activa" id="dashboard">
+      <div class="kpis">
+        <div class="kpi azul"><span class="i">🗂</span><div class="n">1.248</div><div class="l">Activos totales</div></div>
+        <div class="kpi verde"><span class="i">✓</span><div class="n">1.102</div><div class="l">En servicio</div></div>
+        <div class="kpi ambar"><span class="i">🛠</span><div class="n">86</div><div class="l">En reparación</div></div>
+        <div class="kpi rojo"><span class="i">⏸</span><div class="n">60</div><div class="l">De baja</div></div>
+      </div>
+      <div class="card">
+        <h3>📈 Activos por localización</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:18px;">
+          <div>
+            <div style="font-size:13px;color:var(--tx2);margin-bottom:8px;">Centro Comercial</div>
+            <div class="barra"><span style="width:76%"></span></div>
+            <div style="font-size:12px;color:var(--tx2);margin-top:5px;">342 activos</div>
+          </div>
+          <div>
+            <div style="font-size:13px;color:var(--tx2);margin-bottom:8px;">Industria 1</div>
+            <div class="barra"><span style="width:52%;background:var(--warn)"></span></div>
+            <div style="font-size:12px;color:var(--tx2);margin-top:5px;">234 activos</div>
+          </div>
+          <div>
+            <div style="font-size:13px;color:var(--tx2);margin-bottom:8px;">Industria 2</div>
+            <div class="barra"><span style="width:64%;background:var(--ok)"></span></div>
+            <div style="font-size:12px;color:var(--tx2);margin-top:5px;">288 activos</div>
+          </div>
+          <div>
+            <div style="font-size:13px;color:var(--tx2);margin-bottom:8px;">Residencia 1</div>
+            <div class="barra"><span style="width:30%"></span></div>
+            <div style="font-size:12px;color:var(--tx2);margin-top:5px;">135 activos</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🕘 Últimos movimientos</h3>
+        <table>
+          <tr><th>Fecha</th><th>Activo</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Usuario</th></tr>
+          <tr><td>13/08/2026 09:12</td><td>PLC-0023 · Armario automatización</td><td><span class="chip chip-alta">Traslado</span></td><td>Almacén</td><td>Industria 2</td><td>admin</td></tr>
+          <tr><td>12/08/2026 17:40</td><td>CNC-0411 · Centro mecanizado</td><td><span class="chip chip-baja">Baja</span></td><td>Industria 1</td><td>—</td><td>jperez</td></tr>
+          <tr><td>12/08/2026 11:05</td><td>SEN-0877 · Sensor temperatura</td><td><span class="chip chip-alta">Alta</span></td><td>—</td><td>Residencia 1</td><td>admin</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== ACTIVOS ===== -->
+    <div class="vista" id="activos">
+      <div class="card">
+        <h3>🗂 Catálogo de activos</h3>
+        <div class="filtros">
+          <input type="text" placeholder="🔍 Buscar por código, nombre, Nº serie...">
+          <select><option>Categoría: Todas</option><option>Maquinaria</option><option>Electricidad</option><option>Climatización</option><option>Informática</option></select>
+          <select><option>Estado: Todos</option><option>Alta</option><option>En reparación</option><option>Baja</option></select>
+          <select><option>Localización: Todas</option><option>Industria 2</option><option>Centro Comercial</option></select>
+          <button class="btn btn-pr" onclick="abrirModal()">＋ Añadir activo</button>
+        </div>
+        <table>
+          <tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Localización</th><th>Nº serie</th><th>Estado</th><th>Acciones</th></tr>
+          <tr><td><b>PLC-0023</b></td><td>Armario automatización</td><td>Electricidad</td><td>Industria 2 · Nave A</td><td>SN-88423</td><td><span class="chip chip-alta">Alta</span></td><td class="acciones"><button title="Ver">👁</button><button title="Editar">✏️</button><button title="Eliminar">🗑</button></td></tr>
+          <tr><td><b>CNC-0411</b></td><td>Centro mecanizado</td><td>Maquinaria</td><td>—</td><td>SN-10293</td><td><span class="chip chip-baja">Baja</span></td><td class="acciones"><button>👁</button><button>✏️</button><button>🗑</button></td></tr>
+          <tr><td><b>SEN-0877</b></td><td>Sensor temperatura</td><td>Climatización</td><td>Residencia 1 · Clima</td><td>SN-66501</td><td><span class="chip chip-alta">Alta</span></td><td class="acciones"><button>👁</button><button>✏️</button><button>🗑</button></td></tr>
+          <tr><td><b>BCU-1109</b></td><td>Bomba de calor</td><td>Climatización</td><td>Centro Comercial</td><td>SN-40211</td><td><span class="chip chip-repara">Reparación</span></td><td class="acciones"><button>👁</button><button>✏️</button><button>🗑</button></td></tr>
+          <tr><td><b>PC-2301</b></td><td>PC control planta</td><td>Informática</td><td>Industria 1 · Oficina</td><td>SN-98112</td><td><span class="chip chip-alta">Alta</span></td><td class="acciones"><button>👁</button><button>✏️</button><button>🗑</button></td></tr>
+        </table>
+        <div class="paginacion"><span>Mostrando 1–5 de 1.248</span><div class="botones"><button class="btn btn-sec">‹ Anterior</button><button class="btn btn-sec">Siguiente ›</button></div></div>
+      </div>
+    </div>
+
+    <!-- ===== LOCALIZACIONES ===== -->
+    <div class="vista" id="localizaciones">
+      <div class="dos">
+        <div class="panel">
+          <h4>📍 Árbol de localizaciones</h4>
+          <div class="arbol">
+            <div class="nodo sel"><span class="tor">▼</span><span class="ico">🏢</span> Pruebas_Brener <span class="cnt">1.248</span></div>
+            <div class="rama">
+              <div class="nodo"><span class="tor">▼</span><span class="ico">🏬</span> Centro Comercial <span class="cnt">342</span></div>
+              <div class="rama"><div class="nodo"><span class="tor">▸</span><span class="ico">🏗</span> Planta baja <span class="cnt">120</span></div></div>
+              <div class="nodo"><span class="tor">▼</span><span class="ico">🏭</span> Industria 1 <span class="cnt">234</span></div>
+              <div class="nodo"><span class="tor">▼</span><span class="ico">🏭</span> Industria 2 <span class="cnt">288</span></div>
+              <div class="rama">
+                <div class="nodo"><span class="tor">▸</span><span class="ico">🏗</span> Nave A <span class="cnt">160</span></div>
+                <div class="nodo"><span class="tor">▸</span><span class="ico">🏗</span> Nave B <span class="cnt">128</span></div>
+              </div>
+              <div class="nodo"><span class="tor">▼</span><span class="ico">🏡</span> Residencia 1 <span class="cnt">135</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>Activos en «Centro Comercial»</h4>
+          <table>
+            <tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Estado</th></tr>
+            <tr><td><b>BCU-1109</b></td><td>Bomba de calor</td><td>Climatización</td><td><span class="chip chip-repara">Reparación</span></td></tr>
+            <tr><td><b>CLI-0155</b></td><td>Climatizadora techo</td><td>Climatización</td><td><span class="chip chip-alta">Alta</span></td></tr>
+            <tr><td><b>ILI-2201</b></td><td>Luminaria LED</td><td>Electricidad</td><td><span class="chip chip-alta">Alta</span></td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MOVIMIENTOS ===== -->
+    <div class="vista" id="movimientos">
+      <div class="card">
+        <h3>⇄ Movimientos de activos</h3>
+        <div class="filtros">
+          <input type="text" placeholder="🔍 Buscar por activo o código...">
+          <select><option>Tipo: Todos</option><option>Alta</option><option>Baja</option><option>Traslado</option></select>
+          <select><option>Localización: Todas</option><option>Industria 2</option></select>
+          <button class="btn btn-pr">＋ Registrar movimiento</button>
+        </div>
+        <table>
+          <tr><th>Fecha</th><th>Activo</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Usuario</th></tr>
+          <tr><td>13/08/2026 09:12</td><td>PLC-0023</td><td><span class="chip chip-alta">Traslado</span></td><td>Almacén</td><td>Industria 2</td><td>admin</td></tr>
+          <tr><td>12/08/2026 17:40</td><td>CNC-0411</td><td><span class="chip chip-baja">Baja</span></td><td>Industria 1</td><td>—</td><td>jperez</td></tr>
+          <tr><td>12/08/2026 11:05</td><td>SEN-0877</td><td><span class="chip chip-alta">Alta</span></td><td>—</td><td>Residencia 1</td><td>admin</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== MANTENIMIENTOS ===== -->
+    <div class="vista" id="mantenimientos">
+      <div class="card">
+        <h3>🛠 Mantenimientos</h3>
+        <div class="filtros">
+          <input type="text" placeholder="🔍 Buscar...">
+          <select><option>Estado: Próximas revisiones</option><option>Histórico</option></select>
+          <button class="btn btn-pr">＋ Programar mantenimiento</button>
+        </div>
+        <table>
+          <tr><th>Activo</th><th>Tipo</th><th>Fecha</th><th>Próxima revisión</th><th>Coste</th><th>Proveedor</th></tr>
+          <tr><td><b>BCU-1109</b> · Bomba de calor</td><td>Preventivo</td><td>28/07/2026</td><td><span class="err">⚠ 15/09/2026</span></td><td>240 €</td><td>ClimaServ</td></tr>
+          <tr><td><b>CNC-0411</b> · Centro mecanizado</td><td>Correctivo</td><td>01/08/2026</td><td>—</td><td>1.150 €</td><td>MaqSol</td></tr>
+          <tr><td><b>PLC-0023</b> · Armario</td><td>Preventivo</td><td>10/08/2026</td><td>10/11/2026</td><td>90 €</td><td>AutoEl</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== USUARIOS ===== -->
+    <div class="vista" id="usuarios">
+      <div class="card">
+        <h3>👥 Usuarios y roles</h3>
+        <div class="filtros"><button class="btn btn-pr">＋ Añadir usuario</button></div>
+        <table>
+          <tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr>
+          <tr><td>admin</td><td>Administrador</td><td>Administrador</td><td><span class="chip chip-alta">Activo</span></td><td class="acciones"><button>✏️</button></td></tr>
+          <tr><td>jperez</td><td>Juan Pérez</td><td>Operador</td><td><span class="chip chip-alta">Activo</span></td><td class="acciones"><button>✏️</button></td></tr>
+          <tr><td>mruiz</td><td>María Ruiz</td><td>Consulta</td><td><span class="chip chip-baja">Inactivo</span></td><td class="acciones"><button>✏️</button></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL ACTIVO ============ -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="cab"><h3>➕ Añadir activo</h3><button onclick="cerrarModal()">×</button></div>
+    <div class="cuerpo">
+      <div class="campo"><label>Código *</label><input value="PLC-0024" placeholder="Código"></div>
+      <div class="campo"><label>Nombre *</label><input value="Cuadro eléctrico general" placeholder="Nombre"></div>
+      <div class="campo"><label>Categoría</label><select><option>Electricidad</option><option>Maquinaria</option><option>Climatización</option></select></div>
+      <div class="campo"><label>Localización</label><select><option>Industria 2 · Nave A</option><option>Almacén</option></select></div>
+      <div class="campo"><label>Marca</label><input placeholder="Marca"></div>
+      <div class="campo"><label>Modelo</label><input placeholder="Modelo"></div>
+      <div class="campo"><label>Nº de serie</label><input placeholder="Nº serie"></div>
+      <div class="campo"><label>Estado</label><select><option>Alta</option><option>En reparación</option><option>Baja</option></select></div>
+      <div class="campo full"><label>Descripción</label><textarea rows="2" placeholder="Descripción"></textarea></div>
+    </div>
+    <div class="pie"><button class="btn btn-sec" onclick="cerrarModal()">Cancelar</button><button class="btn btn-pr">Guardar</button></div>
+  </div>
+</div>
+
+<script>
+  // Navegación sidebar
+  document.querySelectorAll('.side nav a[data-v]').forEach(function(a){
+    a.addEventListener('click', function(){
+      document.querySelectorAll('.side nav a[data-v]').forEach(x=>x.classList.remove('act'));
+      a.classList.add('act');
+      document.querySelectorAll('.vista').forEach(v=>v.classList.remove('activa'));
+      document.getElementById(a.dataset.v).classList.add('activa');
+    });
+  });
+  function abrirModal(){ document.getElementById('modal').classList.add('abierta'); }
+  function cerrarModal(){ document.getElementById('modal').classList.remove('abierta'); }
+  document.querySelectorAll('.modal-bg').forEach(function(bg){ bg.addEventListener('click', function(e){ if(e.target===bg) cerrarModal(); }); });
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+@using Inventario.Application.Dtos
+@inject Inventario.Web.Services.IActivoService ActivoService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Mover sensor a otro activo</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_error != null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-3">⚠ @_error</MudAlert>
+        }
+        <MudForm @ref="_form" @bind-IsValid="_valido">
+            <MudSelect T="int" Label="Sensor *" @bind-Value="_componenteId"
+                       Required="true" RequiredError="Selecciona un sensor."
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3">
+                @foreach (var c in _componentes)
+                {
+                    <MudSelectItem T="int" Value="@c.Id">@c.Codigo · @c.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="int" Label="Activo destino *" @bind-Value="_nuevoActivoId"
+                       Required="true" RequiredError="Selecciona el activo destino."
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3">
+                @foreach (var a in _activos)
+                {
+                    <MudSelectItem T="int" Value="@a.Id">@a.Codigo · @a.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Default" OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="!_valido || _componentes.Count == 0" OnClick="Confirmar">
+            Mover
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance? Dialog { get; set; }
+
+    [Parameter]
+    public int ActivoId { get; set; }
+
+    private List<ComponenteDto> _componentes = new();
+    private List<ActivoDto> _activos = new();
+    private int _componenteId;
+    private int _nuevoActivoId;
+    private MudForm? _form;
+    private bool _valido;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _componentes = (await ActivoService.ListarComponentesAsync(ActivoId)).ToList();
+            _activos = (await ActivoService.ListarActivosAsync())
+                .Where(a => a.Id != ActivoId)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudieron cargar los datos: {ex.Message}";
+        }
+    }
+
+    private void Cancelar() => Dialog?.Cancel();
+
+    private async Task Confirmar()
+    {
+        if (_form is not null)
+            await _form.ValidateAsync();
+
+        if (!_valido)
+            return;
+
+        Dialog?.Close(DialogResult.Ok(new MoverSensorResult(_componenteId, _nuevoActivoId)));
+    }
+
+    public record MoverSensorResult(int ComponenteId, int NuevoActivoId);
+}

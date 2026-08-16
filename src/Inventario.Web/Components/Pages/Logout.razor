@@ -1,0 +1,37 @@
+@page "/logout"
+@attribute [AllowAnonymous]
+@layout BlankLayout
+@rendermode InteractiveServer
+@using Inventario.Web.Theme
+@inject Inventario.Web.Services.IAuthService AuthService
+@inject IHttpContextAccessor HttpAccessor
+@inject NavigationManager Nav
+
+<PageTitle>Inventario · Sesión cerrada</PageTitle>
+
+<MudThemeProvider Theme="AppTheme.Obtener()" />
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+            background:linear-gradient(135deg, #0D260D 0%, #1B3A1B 55%, #298B21 100%);">
+    <MudPaper Elevation="8"
+              style="max-width:420px; width:100%; padding:40px; text-align:center;">
+        <MudStack Spacing="3" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.WavingHand" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Sesión cerrada</MudText>
+            <MudText Typo="Typo.body2" Class="text-secondary">
+                Has salido correctamente de la aplicación.
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="login">
+                Volver a entrar
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+</div>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var http = HttpAccessor.HttpContext;
+        if (http is not null)
+            await AuthService.CerrarSesionAsync(http);
+    }
+}
