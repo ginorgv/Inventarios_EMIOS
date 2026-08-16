@@ -55,6 +55,39 @@ Server=host;Port=3306;Database=emios301;User=usuario;Password=clave;TreatTinyAsB
 5. Define las variables de entorno (Opción A o B) en el servicio de la app.
 6. Deploy. Healthcheck configurado en `/login`.
 
+## Configuración paso a paso en la UI de Railway
+
+1. Crea un servicio **MySQL** (o MariaDB). Railway genera automáticamente en ese
+   servicio las variables `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`,
+   `MYSQLDATABASE`, `MYSQL_URL`.
+2. En el **servicio de la app** (pestaña **Variables**) crea estas variables
+   (no están predefinidas), referenciando el servicio de BD con `${{Nombre.VAR}}`
+   (sustituye `MySQL` por el nombre real de tu servicio de base de datos):
+
+   | Variable | Valor | Nota |
+   |---|---|---|
+   | `DB_HOST` | `${{MySQL.MYSQLHOST}}` | |
+   | `DB_PORT` | `${{MySQL.MYSQLPORT}}` | |
+   | `DB_USER` | `${{MySQL.MYSQLUSER}}` | |
+   | `DB_PASSWORD` | `${{MySQL.MYSQLPASSWORD}}` | |
+   | `EMIOS301_DATABASE` | `emios301` | Esquema heredado (crearlo/importar en la instancia). |
+   | `EMIOS_INVENTARIO_DATABASE` | `${{MySQL.MYSQLDATABASE}}` | BD por defecto; la app la crea/migra sola. |
+
+   O alternativamente, con cadenas completas (máxima prioridad):
+
+   ```
+   EMIOS301_CONNECTION_STRING = Server=${{MySQL.MYSQLHOST}};Port=${{MySQL.MYSQLPORT}};Database=emios301;User=${{MySQL.MYSQLUSER}};Password=${{MySQL.MYSQLPASSWORD}};TreatTinyAsBoolean=true;
+   EMIOS_INVENTARIO_CONNECTION_STRING = Server=${{MySQL.MYSQLHOST}};Port=${{MySQL.MYSQLPORT}};Database=${{MySQL.MYSQLDATABASE}};User=${{MySQL.MYSQLUSER}};Password=${{MySQL.MYSQLPASSWORD}};TreatTinyAsBoolean=true;
+   ```
+
+3. Crea el esquema **`emios301`** en la instancia MySQL e importa tus datos heredados
+   (la app NO lo crea; es solo lectura). `emios_inventario` se crea y migra sola.
+4. Genera un dominio público para la app: **Settings → Networking → Generate Domain**.
+5. Deploy. Healthcheck configurado en `/login` (`railway.json`).
+
+> `PORT` la define Railway automáticamente y `ASPNETCORE_ENVIRONMENT=Production` ya
+> está fijada en el `Dockerfile`, así que no hace falta configurarlas.
+
 ## Notas
 
 - Las migraciones se pueden generar/aplicar localmente con:
