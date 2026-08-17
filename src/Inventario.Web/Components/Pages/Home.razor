@@ -40,7 +40,7 @@
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                     <div>
                         <MudText Typo="Typo.h4" Color="Color.Success" Class="font-weight-bold">@_enServicio</MudText>
-                        <MudText Typo="Typo.body2" Class="text-secondary">En servicio</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary">Operativos</MudText>
                     </div>
                     <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Color="Color.Success" />
                 </MudStack>
@@ -53,7 +53,7 @@
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                     <div>
                         <MudText Typo="Typo.h4" Color="Color.Warning" Class="font-weight-bold">@_enReparacion</MudText>
-                        <MudText Typo="Typo.body2" Class="text-secondary">En reparación</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary">En mantenimiento</MudText>
                     </div>
                     <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Large" Color="Color.Warning" />
                 </MudStack>
@@ -66,7 +66,7 @@
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                     <div>
                         <MudText Typo="Typo.h4" Color="Color.Error" Class="font-weight-bold">@_deBaja</MudText>
-                        <MudText Typo="Typo.body2" Class="text-secondary">De baja</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary">Inactivos</MudText>
                     </div>
                     <MudIcon Icon="@Icons.Material.Filled.PauseCircle" Size="Size.Large" Color="Color.Error" />
                 </MudStack>
@@ -175,9 +175,9 @@
         {
             var activos = await ActivoService.ListarActivosAsync();
             _totalActivos = activos.Count;
-            _enServicio = activos.Count(a => a.Estado == EstadoActivo.Activo);
-            _enReparacion = activos.Count(a => a.Estado == EstadoActivo.EnMantenimiento);
-            _deBaja = activos.Count(a => a.Estado == EstadoActivo.Baja);
+            _enServicio = activos.Count(a => a.Estado == EstadoActivo.Operativo);
+            _enReparacion = activos.Count(a => a.Estado == EstadoActivo.Mantenimiento);
+            _deBaja = activos.Count(a => a.Estado == EstadoActivo.Inactivo);
 
             var agrupados = activos
                 .GroupBy(a => a.SistemaNombre)

@@ -8,16 +8,17 @@ namespace Inventario.Application.Activos.Commands;
 public record CrearActivoCommand(
     string Codigo,
     string Nombre,
-    string? Descripcion,
     int SistemaId,
-    string? TipoActivo,
     EstadoActivo Estado,
-    double? Latitud,
-    double? Longitud,
     string? Fabricante,
     string? Modelo,
     string? NumeroSerie,
-    DateTime? FechaInstalacion) : IRequest<int>;
+    DateTime? FechaInstalacion,
+    decimal? PotenciaNominalKw,
+    decimal? EficienciaPct,
+    DateTime? FinGarantia,
+    DateTime? UltimaRevision,
+    DateTime? ProximaRevision) : IRequest<int>;
 
 public class CrearActivoCommandHandler : IRequestHandler<CrearActivoCommand, int>
 {
@@ -47,17 +48,17 @@ public class CrearActivoCommandHandler : IRequestHandler<CrearActivoCommand, int
         {
             Codigo = request.Codigo.Trim(),
             Nombre = request.Nombre.Trim(),
-            Descripcion = request.Descripcion,
             SistemaId = request.SistemaId,
-            TipoActivo = request.TipoActivo,
             Estado = request.Estado,
-            Ubicacion = request.Latitud.HasValue && request.Longitud.HasValue
-                ? new Coordenadas(request.Latitud.Value, request.Longitud.Value)
-                : null,
             Fabricante = request.Fabricante,
             Modelo = request.Modelo,
             NumeroSerie = request.NumeroSerie,
-            FechaInstalacion = request.FechaInstalacion
+            FechaInstalacion = request.FechaInstalacion,
+            PotenciaNominalKw = request.PotenciaNominalKw,
+            EficienciaPct = request.EficienciaPct,
+            FinGarantia = request.FinGarantia,
+            UltimaRevision = request.UltimaRevision,
+            ProximaRevision = request.ProximaRevision
         };
 
         await _activoRepository.AgregarAsync(activo, ct);

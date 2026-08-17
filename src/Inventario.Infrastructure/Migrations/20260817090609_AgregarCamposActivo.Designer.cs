@@ -4,6 +4,7 @@ using Inventario.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inventario.Infrastructure.Migrations
 {
     [DbContext(typeof(InventarioDbContext))]
-    partial class InventarioDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260817090609_AgregarCamposActivo")]
+    partial class AgregarCamposActivo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -40,6 +43,10 @@ namespace Inventario.Infrastructure.Migrations
 
                     b.Property<string>("CreadoPor")
                         .HasColumnType("longtext");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<decimal?>("EficienciaPct")
                         .HasPrecision(6, 2)
@@ -88,6 +95,10 @@ namespace Inventario.Infrastructure.Migrations
 
                     b.Property<int>("SistemaId")
                         .HasColumnType("int");
+
+                    b.Property<string>("TipoActivo")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime?>("UltimaRevision")
                         .HasColumnType("datetime(6)");
@@ -532,7 +543,32 @@ namespace Inventario.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.OwnsOne("Inventario.Domain.ValueObjects.Coordenadas", "Ubicacion", b1 =>
+                        {
+                            b1.Property<int>("ActivoId")
+                                .HasColumnType("int");
+
+                            b1.Property<double>("Latitud")
+                                .HasPrecision(10, 6)
+                                .HasColumnType("double")
+                                .HasColumnName("ubicacion_latitud");
+
+                            b1.Property<double>("Longitud")
+                                .HasPrecision(10, 6)
+                                .HasColumnType("double")
+                                .HasColumnName("ubicacion_longitud");
+
+                            b1.HasKey("ActivoId");
+
+                            b1.ToTable("activos");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ActivoId");
+                        });
+
                     b.Navigation("Sistema");
+
+                    b.Navigation("Ubicacion");
                 });
 
             modelBuilder.Entity("Inventario.Domain.Entities.Componente", b =>

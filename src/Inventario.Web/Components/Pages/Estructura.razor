@@ -135,7 +135,7 @@
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" />
                 </PagerContent>
             </MudTable>
         }
@@ -167,7 +167,6 @@
                     <MudTh></MudTh>
                     <MudTh>Código</MudTh>
                     <MudTh>Nombre</MudTh>
-                    <MudTh>Tipo</MudTh>
                     <MudTh>Estado</MudTh>
                     <MudTh>Componentes</MudTh>
                     <MudTh>Acciones</MudTh>
@@ -179,7 +178,6 @@
                     </MudTd>
                     <MudTd DataLabel="Código"><b>@context.Codigo</b></MudTd>
                     <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
-                    <MudTd DataLabel="Tipo">@(string.IsNullOrEmpty(context.TipoActivo) ? "—" : context.TipoActivo)</MudTd>
                     <MudTd DataLabel="Estado"><ChipEstado Estado="context.Estado" /></MudTd>
                     <MudTd DataLabel="Componentes">@context.Componentes.Count</MudTd>
                     <MudTd DataLabel="Acciones">
@@ -190,7 +188,7 @@
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" />
                 </PagerContent>
             </MudTable>
         }
@@ -224,7 +222,7 @@
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" />
                 </PagerContent>
             </MudTable>
         }
@@ -247,7 +245,7 @@
                     <MudTd DataLabel="Longitud">@(context.Longitud?.ToString("F5") ?? "—")</MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" />
                 </PagerContent>
             </MudTable>
         }
@@ -281,7 +279,7 @@
                     </MudTd>
                 </RowTemplate>
                 <PagerContent>
-                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                    <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" />
                 </PagerContent>
             </MudTable>
         }
@@ -389,7 +387,7 @@
             { x => x.ClienteId, cliente.Id },
             { x => x.ClienteNombre, cliente.Nombre }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
         var dialogo = await DialogService.ShowAsync<ClienteDatosDialog>(
             $"Datos de {cliente.Nombre}", parametros, opciones);
         var resultado = await dialogo.Result;
@@ -508,7 +506,7 @@
         {
             { x => x.Modelo, new SistemaViewModel { LocalizacionId = _instalacion!.Id } }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
         var dialogo = await DialogService.ShowAsync<SistemaDialog>("Nuevo sistema", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false })
@@ -524,7 +522,7 @@
         {
             { x => x.Modelo, new ActivoViewModel { SistemaId = _sistema!.Id } }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
         var dialogo = await DialogService.ShowAsync<ActivoDialog>("Nuevo activo", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false })
@@ -542,7 +540,7 @@
             $"¿Eliminar el componente '{comp.Nombre}'?",
             yesText: "Eliminar",
             cancelText: "Cancelar",
-            options: new DialogOptions { CloseButton = true });
+            options: Dialogos.Confirmacion());
 
         if (confirmar != true)
             return;
@@ -580,7 +578,7 @@
             Activo = sistema.Activo
         };
         var parametros = new DialogParameters<SistemaDialog> { { x => x.Modelo, vm } };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
         var dialogo = await DialogService.ShowAsync<SistemaDialog>($"Editar {sistema.Codigo}", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false })
@@ -597,7 +595,7 @@
             $"¿Eliminar el sistema '{sistema.Codigo}'?",
             yesText: "Eliminar",
             cancelText: "Cancelar",
-            options: new DialogOptions { CloseButton = true });
+            options: Dialogos.Confirmacion());
         if (confirmar != true)
             return;
         try
@@ -620,19 +618,15 @@
             Id = activo.Id,
             Codigo = activo.Codigo,
             Nombre = activo.Nombre,
-            Descripcion = activo.Descripcion,
             SistemaId = activo.SistemaId,
-            TipoActivo = activo.TipoActivo,
             Estado = activo.Estado,
-            Latitud = activo.Ubicacion?.Latitud,
-            Longitud = activo.Ubicacion?.Longitud,
             Fabricante = activo.Fabricante,
             Modelo = activo.Modelo,
             NumeroSerie = activo.NumeroSerie,
             FechaInstalacion = activo.FechaInstalacion
         };
         var parametros = new DialogParameters<ActivoDialog> { { x => x.Modelo, vm } };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
         var dialogo = await DialogService.ShowAsync<ActivoDialog>($"Editar {activo.Codigo}", parametros, opciones);
         var resultado = await dialogo.Result;
         if (resultado is { Canceled: false })
@@ -649,7 +643,7 @@
             $"¿Eliminar el activo '{activo.Codigo}'?",
             yesText: "Eliminar",
             cancelText: "Cancelar",
-            options: new DialogOptions { CloseButton = true });
+            options: Dialogos.Confirmacion());
         if (confirmar != true)
             return;
         try
@@ -680,7 +674,7 @@
                 { x => x.LocalizacionId, _sistema!.LocalizacionId },
                 { x => x.ActivoCodigo, _activoSeleccionado.Codigo }
             };
-            var opciones = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true };
+            var opciones = Dialogos.Tabla();
             var dialogo = await DialogService.ShowAsync<ImportarSensoresDialog>(
                 "Importar sensores", parametros, opciones);
             var resultado = await dialogo.Result;
@@ -712,7 +706,7 @@
         {
             { x => x.ActivoId, _activoSeleccionado.Id }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
         var dialogo = await DialogService.ShowAsync<MoverSensorDialog>(
             $"Mover sensor de {_activoSeleccionado.Codigo}", parametros, opciones);
         var resultado = await dialogo.Result;

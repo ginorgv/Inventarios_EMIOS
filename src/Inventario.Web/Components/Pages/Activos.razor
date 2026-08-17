@@ -58,7 +58,6 @@
                 <MudTh></MudTh>
                 <MudTh>Código</MudTh>
                 <MudTh>Nombre</MudTh>
-                <MudTh>Tipo</MudTh>
                 <MudTh>Sistema</MudTh>
                 <MudTh>Nº serie</MudTh>
                 <MudTh>Estado</MudTh>
@@ -71,7 +70,6 @@
                 </MudTd>
                 <MudTd DataLabel="Código"><b>@context.Codigo</b></MudTd>
                 <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
-                <MudTd DataLabel="Tipo">@(string.IsNullOrEmpty(context.TipoActivo) ? "—" : context.TipoActivo)</MudTd>
                 <MudTd DataLabel="Sistema">@context.SistemaNombre</MudTd>
                 <MudTd DataLabel="Nº serie">@(string.IsNullOrEmpty(context.NumeroSerie) ? "—" : context.NumeroSerie)</MudTd>
                 <MudTd DataLabel="Estado"><ChipEstado Estado="context.Estado" /></MudTd>
@@ -83,7 +81,7 @@
                 </MudTd>
             </RowTemplate>
             <PagerContent>
-                <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" />
             </PagerContent>
         </MudTable>
     </MudCardContent>
@@ -134,7 +132,7 @@
         {
             { x => x.Modelo, new ActivoViewModel() }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
 
         var dialogo = await DialogService.ShowAsync<ActivoDialog>("Nuevo activo", parametros, opciones);
         var resultado = await dialogo.Result;
@@ -165,7 +163,7 @@
                 { x => x.LocalizacionId, _seleccionado.LocalizacionId },
                 { x => x.ActivoCodigo, _seleccionado.Codigo }
             };
-            var opciones = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true };
+            var opciones = Dialogos.Tabla();
             var dialogo = await DialogService.ShowAsync<ImportarSensoresDialog>(
                 "Importar sensores", parametros, opciones);
             var resultado = await dialogo.Result;
@@ -196,7 +194,7 @@
         {
             { x => x.ActivoId, _seleccionado.Id }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
         var dialogo = await DialogService.ShowAsync<MoverSensorDialog>(
             $"Mover sensor de {_seleccionado.Codigo}", parametros, opciones);
         var resultado = await dialogo.Result;
@@ -215,7 +213,7 @@
         {
             { x => x.Modelo, ActivoViewModel.FromDto(activo) }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
 
         var dialogo = await DialogService.ShowAsync<ActivoDialog>($"Editar {activo.Codigo}", parametros, opciones);
         var resultado = await dialogo.Result;
@@ -230,7 +228,7 @@
             $"¿Eliminar el activo '{activo.Codigo}'? Esta acción no se puede deshacer.",
             yesText: "Eliminar",
             cancelText: "Cancelar",
-            options: new DialogOptions { CloseButton = true });
+            options: Dialogos.Confirmacion());
 
         if (confirmar != true)
             return;

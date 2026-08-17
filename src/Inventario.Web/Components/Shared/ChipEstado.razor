@@ -8,17 +8,17 @@
 
     private string _texto => Estado switch
     {
-        EstadoActivo.Activo => "Alta",
-        EstadoActivo.EnMantenimiento => "Reparación",
-        EstadoActivo.Baja => "Baja",
+        EstadoActivo.Operativo => "Operativo",
+        EstadoActivo.Averia => "Avería",
+        EstadoActivo.Mantenimiento => "Mantenimiento",
         _ => "Inactivo"
     };
 
     private Color _color => Estado switch
     {
-        EstadoActivo.Activo => Color.Success,
-        EstadoActivo.EnMantenimiento => Color.Warning,
-        EstadoActivo.Baja => Color.Error,
+        EstadoActivo.Operativo => Color.Success,
+        EstadoActivo.Averia => Color.Error,
+        EstadoActivo.Mantenimiento => Color.Warning,
         _ => Color.Default
     };
 }

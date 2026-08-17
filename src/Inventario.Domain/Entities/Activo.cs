@@ -14,17 +14,11 @@ public class Activo : AuditableEntity
 
     public string Nombre { get; set; } = string.Empty;
 
-    public string? Descripcion { get; set; }
-
     public int SistemaId { get; set; }
 
     public Sistema? Sistema { get; set; }
 
-    public string? TipoActivo { get; set; }
-
-    public EstadoActivo Estado { get; set; } = EstadoActivo.Activo;
-
-    public Coordenadas? Ubicacion { get; set; }
+    public EstadoActivo Estado { get; set; } = EstadoActivo.Operativo;
 
     public string? Fabricante { get; set; }
 
@@ -33,6 +27,21 @@ public class Activo : AuditableEntity
     public string? NumeroSerie { get; set; }
 
     public DateTime? FechaInstalacion { get; set; }
+
+    /// <summary>Potencia nominal en kW.</summary>
+    public decimal? PotenciaNominalKw { get; set; }
+
+    /// <summary>Eficiencia en porcentaje (0-100).</summary>
+    public decimal? EficienciaPct { get; set; }
+
+    /// <summary>Fin de garantía.</summary>
+    public DateTime? FinGarantia { get; set; }
+
+    /// <summary>Última revisión (mantenimiento realizado).</summary>
+    public DateTime? UltimaRevision { get; set; }
+
+    /// <summary>Próxima revisión (mantenimiento previsto).</summary>
+    public DateTime? ProximaRevision { get; set; }
 
     public ICollection<Componente> Componentes { get; set; } = new List<Componente>();
 

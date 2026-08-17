@@ -66,7 +66,7 @@
                 </MudTd>
             </RowTemplate>
             <PagerContent>
-                <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" />
+                <MudTablePager PageSizeOptions="new int[]{ 10, 25, 50 }" RowsPerPageString="Filas por página:" InfoFormat="{first_item}-{last_item} de {all_items}" />
             </PagerContent>
         </MudTable>
     </MudCardContent>
@@ -114,7 +114,7 @@
         {
             { x => x.Modelo, new SistemaViewModel() }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
 
         var dialogo = await DialogService.ShowAsync<SistemaDialog>("Nuevo sistema", parametros, opciones);
         var resultado = await dialogo.Result;
@@ -128,7 +128,7 @@
         {
             { x => x.Modelo, SistemaViewModel.FromDto(sistema) }
         };
-        var opciones = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var opciones = Dialogos.Formulario();
 
         var dialogo = await DialogService.ShowAsync<SistemaDialog>($"Editar {sistema.Codigo}", parametros, opciones);
         var resultado = await dialogo.Result;
@@ -143,7 +143,7 @@
             $"¿Eliminar el sistema '{sistema.Codigo}'?",
             yesText: "Eliminar",
             cancelText: "Cancelar",
-            options: new DialogOptions { CloseButton = true });
+            options: Dialogos.Confirmacion());
 
         if (confirmar != true)
             return;

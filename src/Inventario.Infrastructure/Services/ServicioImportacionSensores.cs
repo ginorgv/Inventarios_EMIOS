@@ -131,7 +131,6 @@ public class ServicioImportacionSensores
                 if (activoPorId.TryGetValue(comp.ActivoId, out var activo))
                 {
                     activo.Nombre = sensor.Nombre;
-                    activo.TipoActivo = sensor.Clase;
                     activo.SistemaId = sistema.Id;
                     _activoRepository.Actualizar(activo);
                     actualizadosA++;
@@ -145,10 +144,8 @@ public class ServicioImportacionSensores
                 {
                     Codigo = $"EQ-{sensor.Id:00000}",
                     Nombre = sensor.Nombre,
-                    Descripcion = sensor.Descripcion,
                     SistemaId = sistema.Id,
-                    TipoActivo = sensor.Clase,
-                    Estado = EstadoActivo.Activo
+                    Estado = EstadoActivo.Operativo
                 };
                 activo.Componentes.Add(new Componente
                 {

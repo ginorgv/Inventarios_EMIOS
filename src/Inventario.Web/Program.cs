@@ -1,3 +1,4 @@
+using System.Globalization;
 using Inventario.Application;
 using Inventario.Infrastructure;
 using Inventario.Infrastructure.Persistence;
@@ -7,6 +8,12 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using MudBlazor.Services;
+
+// Cultura por defecto: español (es-ES). Afecta a fechas, nombres de días/meses en
+// MudDatePicker y formatos. Sin middleware de localización para que NO dependa del
+// navegador: la app siempre se muestra en español (local y Railway).
+CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("es-ES");
+CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("es-ES");
 
 var builder = WebApplication.CreateBuilder(args);
 

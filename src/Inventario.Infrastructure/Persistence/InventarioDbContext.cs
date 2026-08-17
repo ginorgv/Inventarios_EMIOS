@@ -26,6 +26,9 @@ public class InventarioDbContext : DbContext
     /// <summary>Datos ampliados del Cliente (1:1 con emios301.clientes mediante Id).</summary>
     public DbSet<ClienteDatos> ClientesDatos => Set<ClienteDatos>();
 
+    /// <summary>Permisos explícitos de usuarios sobre la jerarquía.</summary>
+    public DbSet<Permiso> Permisos => Set<Permiso>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(InventarioDbContext).Assembly);

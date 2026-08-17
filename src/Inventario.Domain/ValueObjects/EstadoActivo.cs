@@ -1,12 +1,12 @@
 namespace Inventario.Domain.ValueObjects;
 
 /// <summary>
-/// Estado de un activo.
+/// Estado operativo de un activo.
 /// </summary>
 public enum EstadoActivo
 {
-    Activo = 0,
-    Inactivo = 1,
-    EnMantenimiento = 2,
-    Baja = 3
+    Operativo = 0,
+    Averia = 1,
+    Mantenimiento = 2,
+    Inactivo = 3
 }

@@ -8,16 +8,17 @@ public record ActualizarActivoCommand(
     int Id,
     string Codigo,
     string Nombre,
-    string? Descripcion,
     int SistemaId,
-    string? TipoActivo,
     EstadoActivo Estado,
-    double? Latitud,
-    double? Longitud,
     string? Fabricante,
     string? Modelo,
     string? NumeroSerie,
-    DateTime? FechaInstalacion) : IRequest;
+    DateTime? FechaInstalacion,
+    decimal? PotenciaNominalKw,
+    decimal? EficienciaPct,
+    DateTime? FinGarantia,
+    DateTime? UltimaRevision,
+    DateTime? ProximaRevision) : IRequest;
 
 public class ActualizarActivoCommandHandler : IRequestHandler<ActualizarActivoCommand>
 {
@@ -48,17 +49,17 @@ public class ActualizarActivoCommandHandler : IRequestHandler<ActualizarActivoCo
 
         activo.Codigo = request.Codigo.Trim();
         activo.Nombre = request.Nombre.Trim();
-        activo.Descripcion = request.Descripcion;
         activo.SistemaId = request.SistemaId;
-        activo.TipoActivo = request.TipoActivo;
         activo.Estado = request.Estado;
-        activo.Ubicacion = request.Latitud.HasValue && request.Longitud.HasValue
-            ? new Coordenadas(request.Latitud.Value, request.Longitud.Value)
-            : null;
         activo.Fabricante = request.Fabricante;
         activo.Modelo = request.Modelo;
         activo.NumeroSerie = request.NumeroSerie;
         activo.FechaInstalacion = request.FechaInstalacion;
+        activo.PotenciaNominalKw = request.PotenciaNominalKw;
+        activo.EficienciaPct = request.EficienciaPct;
+        activo.FinGarantia = request.FinGarantia;
+        activo.UltimaRevision = request.UltimaRevision;
+        activo.ProximaRevision = request.ProximaRevision;
         activo.ModificadoEn = DateTime.UtcNow;
 
         _activoRepository.Actualizar(activo);

@@ -12,18 +12,19 @@ public static class ActivoMappings
         a.Id,
         a.Codigo,
         a.Nombre,
-        a.Descripcion,
         a.SistemaId,
         localizacionId,
         sistemaNombre,
-        a.TipoActivo,
         a.Estado,
-        a.Ubicacion?.Latitud,
-        a.Ubicacion?.Longitud,
         a.Fabricante,
         a.Modelo,
         a.NumeroSerie,
         a.FechaInstalacion,
+        a.PotenciaNominalKw,
+        a.EficienciaPct,
+        a.FinGarantia,
+        a.UltimaRevision,
+        a.ProximaRevision,
         a.Componentes.Count);
 
     public static ComponenteDto ToDto(this Componente c) => new(

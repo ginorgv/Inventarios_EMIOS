@@ -30,14 +30,11 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudSelect T="EstadoActivo" Label="Estado" @bind-Value="Modelo.Estado">
-                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Activo">Alta</MudSelectItem>
+                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Operativo">Operativo</MudSelectItem>
+                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Averia">Avería</MudSelectItem>
+                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Mantenimiento">Mantenimiento</MudSelectItem>
                         <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Inactivo">Inactivo</MudSelectItem>
-                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.EnMantenimiento">En reparación</MudSelectItem>
-                        <MudSelectItem T="EstadoActivo" Value="EstadoActivo.Baja">Baja</MudSelectItem>
                     </MudSelect>
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudTextField T="string" Label="Tipo / Categoría" @bind-Value="Modelo.TipoActivo" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField T="string" Label="Nº de serie" @bind-Value="Modelo.NumeroSerie" />
@@ -49,16 +46,22 @@
                     <MudTextField T="string" Label="Modelo" @bind-Value="Modelo.Modelo" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <MudNumericField T="double?" Label="Latitud" @bind-Value="Modelo.Latitud" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudNumericField T="double?" Label="Longitud" @bind-Value="Modelo.Longitud" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Fecha de instalación" @bind-Date="Modelo.FechaInstalacion" />
                 </MudItem>
-                <MudItem xs="12">
-                    <MudTextField T="string" Label="Descripción" @bind-Value="Modelo.Descripcion" Lines="3" />
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" Label="Potencia nominal (kW)" @bind-Value="Modelo.PotenciaNominalKw" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" Label="Eficiencia (%)" @bind-Value="Modelo.EficienciaPct" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Fin de garantía" @bind-Date="Modelo.FinGarantia" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Última revisión" @bind-Date="Modelo.UltimaRevision" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Próxima revisión" @bind-Date="Modelo.ProximaRevision" />
                 </MudItem>
             </MudGrid>
         </MudForm>

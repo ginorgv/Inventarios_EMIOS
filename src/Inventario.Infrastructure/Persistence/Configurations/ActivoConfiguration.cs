@@ -15,11 +15,11 @@ public class ActivoConfiguration : IEntityTypeConfiguration<Activo>
 
         builder.Property(a => a.Codigo).HasMaxLength(50).IsRequired();
         builder.Property(a => a.Nombre).HasMaxLength(200).IsRequired();
-        builder.Property(a => a.Descripcion).HasMaxLength(2000);
-        builder.Property(a => a.TipoActivo).HasMaxLength(100);
         builder.Property(a => a.Fabricante).HasMaxLength(100);
         builder.Property(a => a.Modelo).HasMaxLength(100);
         builder.Property(a => a.NumeroSerie).HasMaxLength(100);
+        builder.Property(a => a.PotenciaNominalKw).HasPrecision(12, 2);
+        builder.Property(a => a.EficienciaPct).HasPrecision(6, 2);
 
         builder.HasIndex(a => a.Codigo).IsUnique();
         builder.HasIndex(a => a.SistemaId);
@@ -27,13 +27,6 @@ public class ActivoConfiguration : IEntityTypeConfiguration<Activo>
         builder.Property(a => a.Estado)
             .HasConversion<string>()
             .HasMaxLength(30);
-
-        // Value object: coordenadas → dos columnas propias.
-        builder.OwnsOne(a => a.Ubicacion, ubicacion =>
-        {
-            ubicacion.Property(c => c.Latitud).HasColumnName("ubicacion_latitud").HasPrecision(10, 6);
-            ubicacion.Property(c => c.Longitud).HasColumnName("ubicacion_longitud").HasPrecision(10, 6);
-        });
 
         builder.HasMany(a => a.Componentes)
             .WithOne(c => c.Activo)
